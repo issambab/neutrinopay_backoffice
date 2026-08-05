@@ -76,16 +76,16 @@ The workflow `.github/workflows/ci-cd.yml` builds the Next.js app, pushes a Dock
 Required GitHub repository secrets:
 
 ```text
-VPS_HOST
-VPS_USER
-VPS_SSH_KEY
+VPS_HOST=213.32.20.135
+VPS_USER=issamb
+VPS_PORT=52200
+VPS_SSH_KEY=<private deploy key>
 VPS_BACKOFFICE_DIR
 ```
 
 Optional secrets:
 
 ```text
-VPS_PORT
 GHCR_USERNAME
 GHCR_TOKEN
 ```
@@ -99,3 +99,22 @@ BACKOFFICE_DEFAULT_TENANT_ID
 ```
 
 On the VPS, `VPS_BACKOFFICE_DIR` must contain this backoffice repository and a `.env.prod` file.
+
+If GitHub Actions returns `Too many authentication failures`, the workflow forces:
+
+```text
+BatchMode=yes
+IdentitiesOnly=yes
+PreferredAuthentications=publickey
+```
+
+Because the private key is sensitive, rotate it if it has been exposed:
+
+```bash
+ssh-keygen -t ed25519 -C "backoffice-github-actions" -f ~/.ssh/backoffice_github_actions
+cat ~/.ssh/backoffice_github_actions.pub >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Then replace the GitHub secret `VPS_SSH_KEY` with the content of `~/.ssh/backoffice_github_actions`.
