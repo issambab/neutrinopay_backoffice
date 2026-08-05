@@ -71,14 +71,14 @@ server {
 
 ## 5. GitHub Actions CI/CD
 
-The workflow `.github/workflows/ci-cd.yml` builds the Next.js app, pushes a Docker image to GHCR, then deploys it to the VPS.
+The workflow `.github/workflows/ci-cd.yml` builds the Next.js app, pushes a Docker image to GHCR, copies `docker-compose.prod.yml` to the VPS, then deploys the stack.
 
 Required GitHub repository secrets:
 
 ```text
-VPS_HOST=213.32.20.135
-VPS_USER=issamb
-VPS_PORT=52200
+VPS_HOST=213.32.20
+VPS_USER=
+VPS_PORT=
 VPS_SSH_KEY=<private deploy key>
 VPS_BACKOFFICE_DIR
 ```
@@ -98,7 +98,15 @@ NEXT_PUBLIC_API_BASE_URL
 BACKOFFICE_DEFAULT_TENANT_ID
 ```
 
-On the VPS, `VPS_BACKOFFICE_DIR` must contain this backoffice repository and a `.env.prod` file.
+On the VPS, `VPS_BACKOFFICE_DIR` does not need to be a Git repository. It only needs a `.env.prod` file. The workflow creates the directory if needed and synchronizes `docker-compose.prod.yml` on each deployment.
+
+Example:
+
+```bash
+mkdir -p /opt/neutrinopay-backoffice
+cd /opt/neutrinopay-backoffice
+nano .env.prod
+```
 
 If GitHub Actions returns `Too many authentication failures`, the workflow forces:
 
