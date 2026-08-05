@@ -1,0 +1,102 @@
+name: Slack notifications
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  notify-slack:
+    name: Notify Slack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build Slack payload
+        id: slack-payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REPOSITORY="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          EVENT_NAME="${{ github.event_name }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "$EVENT_NAME" = "push" ]; then
+            BRANCH="${GITHUB_REF_NAME}"
+            SHA="${GITHUB_SHA}"
+            SHORT_SHA="${SHA:0:7}"
+            TITLE=":rocket: Backoffice push sur main"
+            MESSAGE="Repo: $REPOSITORY\nBranch: $BRANCH\nCommit: $SHORT_SHA\nAuteur: $ACTOR\nRun: $RUN_URL"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_STATE="${{ github.event.pull_request.state }}"
+            PR_URL="${{ github.event.pull_request.html_url }}"
+            PR_MERGED="${{ github.event.pull_request.merged }}"
+
+            if [ "${{ github.event.action }}" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
+              TITLE=":white_check_mark: Backoffice PR mergee"
+            elif [ "${{ github.event.action }}" = "closed" ]; then
+              TITLE=":warning: Backoffice PR fermee"
+            else
+              TITLE=":eyes: Backoffice PR mise a jour"
+            fi
+
+            MESSAGE="Repo: $REPOSITORY\nPR: #$PR_NUMBER - $PR_TITLE\nStatut: $PR_STATE\nAuteur: $ACTOR\nVoir: $PR_URL"
+          else
+            TITLE=":bell: Test notification Slack backoffice"
+            MESSAGE="Repo: $REPOSITORY\nLance par: $ACTOR\nRun: $RUN_URL"
+          fi
+
+          {
+            echo "payload<<EOF"
+            jq -n \
+              --arg title "$TITLE" \
+              --arg message "$MESSAGE" \
+              '{
+                text: ($title + "\n" + $message),
+                blocks: [
+                  {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text: ("*" + $title + "*\n" + $message)
+                    }
+                  }
+                ]
+              }'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PAYLOAD: ${{ steps.slack-payload.outputs.payload }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "Missing GitHub secret: SLACK_WEBHOOK_URL"
+            exit 1
+          fi
+
+          curl --fail --show-error --silent \
+            --request POST \
+            --header "Content-type: application/json" \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"
