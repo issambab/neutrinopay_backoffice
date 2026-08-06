@@ -28,10 +28,11 @@ type ApiErrorResponse = {
 };
 
 function getApiBaseUrl() {
-  return (process.env.BACKEND_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(
-    /\/$/,
-    "",
-  );
+  return (
+    process.env.BACKEND_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    DEFAULT_API_BASE_URL
+  ).replace(/\/$/, "");
 }
 
 function getDefaultTenantId() {
@@ -42,7 +43,9 @@ function getCookieOptions(maxAge: number) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure:
+      process.env.AUTH_COOKIE_SECURE !== "false" &&
+      process.env.NODE_ENV === "production",
     path: "/",
     maxAge,
   };
@@ -58,7 +61,9 @@ function getRefreshTokenMaxAge(refreshTokenExpiresAt: string) {
   return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
 }
 
-export async function loginToBackend(payload: LoginRequest): Promise<AuthTokenResponse> {
+export async function loginToBackend(
+  payload: LoginRequest,
+): Promise<AuthTokenResponse> {
   const response = await fetch(`${getApiBaseUrl()}/auth/login`, {
     method: "POST",
     headers: {
@@ -69,7 +74,9 @@ export async function loginToBackend(payload: LoginRequest): Promise<AuthTokenRe
     cache: "no-store",
   });
 
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<AuthTokenResponse> | null;
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<AuthTokenResponse> | null;
 
   if (!response.ok || !apiResponse?.success || !apiResponse.data) {
     throw new Error(apiErrorMessage(apiResponse, "Authentication failed."));
@@ -78,7 +85,11 @@ export async function loginToBackend(payload: LoginRequest): Promise<AuthTokenRe
   return apiResponse.data;
 }
 
-export async function verifyMfaToBackend(payload: { challengeId: string; code: string; deviceFingerprint?: string }) {
+export async function verifyMfaToBackend(payload: {
+  challengeId: string;
+  code: string;
+  deviceFingerprint?: string;
+}) {
   const response = await fetch(`${getApiBaseUrl()}/auth/mfa/verify`, {
     method: "POST",
     headers: {
@@ -88,7 +99,9 @@ export async function verifyMfaToBackend(payload: { challengeId: string; code: s
     body: JSON.stringify(payload),
     cache: "no-store",
   });
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<AuthTokenResponse> | null;
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<AuthTokenResponse> | null;
 
   if (!response.ok || !apiResponse?.success || !apiResponse.data) {
     throw new Error(apiErrorMessage(apiResponse, "MFA verification failed."));
@@ -107,7 +120,10 @@ export async function resendMfaChallenge(challengeId: string) {
     body: JSON.stringify({ challengeId }),
     cache: "no-store",
   });
-  return readPublicApiResponse<OtpChallengeResponse>(response, "Unable to send MFA code.");
+  return readPublicApiResponse<OtpChallengeResponse>(
+    response,
+    "Unable to send MFA code.",
+  );
 }
 
 export async function registerCustomerAccount(payload: RegisterAccountRequest) {
@@ -120,33 +136,50 @@ export async function registerCustomerAccount(payload: RegisterAccountRequest) {
     body: JSON.stringify(payload),
     cache: "no-store",
   });
-  return readPublicApiResponse<CurrentUserResponse["user"]>(response, "Unable to register account.");
+  return readPublicApiResponse<CurrentUserResponse["user"]>(
+    response,
+    "Unable to register account.",
+  );
 }
 
 export async function sendAccountVerification(identifier: string) {
-  const response = await fetch(`${getApiBaseUrl()}/accounts/verification/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Tenant-Id": getDefaultTenantId(),
+  const response = await fetch(
+    `${getApiBaseUrl()}/accounts/verification/send`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-Id": getDefaultTenantId(),
+      },
+      body: JSON.stringify({ identifier }),
+      cache: "no-store",
     },
-    body: JSON.stringify({ identifier }),
-    cache: "no-store",
-  });
-  return readPublicApiResponse<OtpChallengeResponse>(response, "Unable to send verification code.");
+  );
+  return readPublicApiResponse<OtpChallengeResponse>(
+    response,
+    "Unable to send verification code.",
+  );
 }
 
-export async function confirmAccountVerification(identifier: string, code: string) {
-  const response = await fetch(`${getApiBaseUrl()}/accounts/verification/confirm`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Tenant-Id": getDefaultTenantId(),
+export async function confirmAccountVerification(
+  identifier: string,
+  code: string,
+) {
+  const response = await fetch(
+    `${getApiBaseUrl()}/accounts/verification/confirm`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-Id": getDefaultTenantId(),
+      },
+      body: JSON.stringify({ identifier, code }),
+      cache: "no-store",
     },
-    body: JSON.stringify({ identifier, code }),
-    cache: "no-store",
-  });
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
+  );
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<unknown> | null;
 
   if (!response.ok || !apiResponse?.success) {
     throw new Error(apiErrorMessage(apiResponse, "Unable to verify account."));
@@ -154,19 +187,50 @@ export async function confirmAccountVerification(identifier: string, code: strin
 }
 
 export async function persistAuthSession(auth: AuthTokenResponse) {
-  if (auth.mfaRequired || !auth.accessToken || !auth.refreshToken || !auth.refreshTokenExpiresAt) {
-    throw new Error("Authentication MFA is required before creating a session.");
+  if (
+    auth.mfaRequired ||
+    !auth.accessToken ||
+    !auth.refreshToken ||
+    !auth.refreshTokenExpiresAt
+  ) {
+    throw new Error(
+      "Authentication MFA is required before creating a session.",
+    );
   }
 
   const cookieStore = await cookies();
   const refreshTokenMaxAge = getRefreshTokenMaxAge(auth.refreshTokenExpiresAt);
 
-  cookieStore.set(AUTH_COOKIE_NAMES.accessToken, auth.accessToken, getCookieOptions(auth.accessTokenExpiresInSeconds));
-  cookieStore.set(AUTH_COOKIE_NAMES.refreshToken, auth.refreshToken, getCookieOptions(refreshTokenMaxAge));
-  cookieStore.set(AUTH_COOKIE_NAMES.tenantId, auth.tenantId, getCookieOptions(refreshTokenMaxAge));
-  cookieStore.set(AUTH_COOKIE_NAMES.userId, auth.userId, getCookieOptions(refreshTokenMaxAge));
-  cookieStore.set(AUTH_COOKIE_NAMES.username, auth.username, getCookieOptions(refreshTokenMaxAge));
-  cookieStore.set(AUTH_COOKIE_NAMES.authorities, JSON.stringify(auth.authorities), getCookieOptions(refreshTokenMaxAge));
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.accessToken,
+    auth.accessToken,
+    getCookieOptions(auth.accessTokenExpiresInSeconds),
+  );
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.refreshToken,
+    auth.refreshToken,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.tenantId,
+    auth.tenantId,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.userId,
+    auth.userId,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.username,
+    auth.username,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.authorities,
+    JSON.stringify(auth.authorities),
+    getCookieOptions(refreshTokenMaxAge),
+  );
   cookieStore.set(
     AUTH_COOKIE_NAMES.passwordChangeRequired,
     String(auth.passwordChangeRequired),
@@ -174,8 +238,13 @@ export async function persistAuthSession(auth: AuthTokenResponse) {
   );
 }
 
-async function readPublicApiResponse<T>(response: Response, fallbackMessage: string) {
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<T> | null;
+async function readPublicApiResponse<T>(
+  response: Response,
+  fallbackMessage: string,
+) {
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<T> | null;
 
   if (!response.ok || !apiResponse?.success || !apiResponse.data) {
     throw new Error(apiErrorMessage(apiResponse, fallbackMessage));
@@ -230,7 +299,8 @@ export async function logoutFromBackend() {
 export async function refreshAuthSession() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get(AUTH_COOKIE_NAMES.refreshToken)?.value;
-  const tenantId = cookieStore.get(AUTH_COOKIE_NAMES.tenantId)?.value ?? getDefaultTenantId();
+  const tenantId =
+    cookieStore.get(AUTH_COOKIE_NAMES.tenantId)?.value ?? getDefaultTenantId();
 
   if (!refreshToken) {
     throw new Error("Authentication session is missing.");
@@ -245,7 +315,9 @@ export async function refreshAuthSession() {
     body: JSON.stringify({ refreshToken }),
     cache: "no-store",
   });
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<AuthTokenResponse> | null;
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<AuthTokenResponse> | null;
 
   if (!response.ok || !apiResponse?.success || !apiResponse.data) {
     await clearAuthSession();
@@ -256,7 +328,10 @@ export async function refreshAuthSession() {
   return apiResponse.data;
 }
 
-export async function authenticatedBackendFetch(path: string, init: RequestInit = {}) {
+export async function authenticatedBackendFetch(
+  path: string,
+  init: RequestInit = {},
+) {
   const response = await fetchWithCurrentAccessToken(path, init);
 
   if (response.status !== 401) {
@@ -272,10 +347,14 @@ export async function authenticatedBackendFetch(path: string, init: RequestInit 
   return fetchWithCurrentAccessToken(path, init);
 }
 
-async function fetchWithCurrentAccessToken(path: string, init: RequestInit = {}) {
+async function fetchWithCurrentAccessToken(
+  path: string,
+  init: RequestInit = {},
+) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(AUTH_COOKIE_NAMES.accessToken)?.value;
-  const tenantId = cookieStore.get(AUTH_COOKIE_NAMES.tenantId)?.value ?? getDefaultTenantId();
+  const tenantId =
+    cookieStore.get(AUTH_COOKIE_NAMES.tenantId)?.value ?? getDefaultTenantId();
   const headers = new Headers(init.headers);
 
   if (!accessToken) {
@@ -292,7 +371,10 @@ async function fetchWithCurrentAccessToken(path: string, init: RequestInit = {})
   });
 }
 
-export function getPostLoginRedirect(authorities: string[] = [], passwordChangeRequired = false) {
+export function getPostLoginRedirect(
+  authorities: string[] = [],
+  passwordChangeRequired = false,
+) {
   if (passwordChangeRequired) {
     return CHANGE_PASSWORD_PATH;
   }
@@ -327,7 +409,10 @@ export function isAdminAuthorities(authorities: string[] = []) {
 }
 
 export function isMerchantAuthorities(authorities: string[] = []) {
-  return authorities.some((authority) => authority === "ROLE_MERCHANT_ADMIN" || authority === "ROLE_MERCHANT");
+  return authorities.some(
+    (authority) =>
+      authority === "ROLE_MERCHANT_ADMIN" || authority === "ROLE_MERCHANT",
+  );
 }
 
 export function isCustomerAuthorities(authorities: string[] = []) {
@@ -336,7 +421,9 @@ export function isCustomerAuthorities(authorities: string[] = []) {
 
 export async function getCurrentUserProfile() {
   const response = await authenticatedBackendFetch("/me");
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<CurrentUserResponse> | null;
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<CurrentUserResponse> | null;
 
   if (!response.ok || !apiResponse?.success || !apiResponse.data) {
     throw new Error(apiResponse?.message ?? "Unable to load current user.");
@@ -345,7 +432,10 @@ export async function getCurrentUserProfile() {
   return apiResponse.data;
 }
 
-export async function updateCurrentUserProfile(payload: { fullName?: string | null; phoneNumber?: string | null }) {
+export async function updateCurrentUserProfile(payload: {
+  fullName?: string | null;
+  phoneNumber?: string | null;
+}) {
   const response = await authenticatedBackendFetch("/me", {
     method: "PATCH",
     headers: {
@@ -353,10 +443,14 @@ export async function updateCurrentUserProfile(payload: { fullName?: string | nu
     },
     body: JSON.stringify(payload),
   });
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<CurrentUserResponse["user"]> | null;
+  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<
+    CurrentUserResponse["user"]
+  > | null;
 
   if (!response.ok || !apiResponse?.success || !apiResponse.data) {
-    throw new Error(apiErrorMessage(apiResponse, "Unable to update current user."));
+    throw new Error(
+      apiErrorMessage(apiResponse, "Unable to update current user."),
+    );
   }
 
   return apiResponse.data;
@@ -370,32 +464,44 @@ export async function changeBackendPassword(payload: ChangePasswordRequest) {
     },
     body: JSON.stringify(payload),
   });
-  const apiResponse = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
+  const apiResponse = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<unknown> | null;
 
   if (!response.ok || !apiResponse?.success) {
     throw new Error(apiResponse?.message ?? "Unable to change password.");
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(AUTH_COOKIE_NAMES.passwordChangeRequired, "false", getCookieOptions(DEFAULT_REFRESH_TOKEN_MAX_AGE));
+  cookieStore.set(
+    AUTH_COOKIE_NAMES.passwordChangeRequired,
+    "false",
+    getCookieOptions(DEFAULT_REFRESH_TOKEN_MAX_AGE),
+  );
 }
 
 export async function isPasswordChangeRequired() {
   const cookieStore = await cookies();
-  return cookieStore.get(AUTH_COOKIE_NAMES.passwordChangeRequired)?.value === "true";
+  return (
+    cookieStore.get(AUTH_COOKIE_NAMES.passwordChangeRequired)?.value === "true"
+  );
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(AUTH_COOKIE_NAMES.userId)?.value;
   const username = cookieStore.get(AUTH_COOKIE_NAMES.username)?.value;
-  const authoritiesCookie = cookieStore.get(AUTH_COOKIE_NAMES.authorities)?.value;
+  const authoritiesCookie = cookieStore.get(
+    AUTH_COOKIE_NAMES.authorities,
+  )?.value;
 
   if (!userId || !username) {
     return null;
   }
 
-  const authorities = authoritiesCookie ? parseAuthorities(authoritiesCookie) : [];
+  const authorities = authoritiesCookie
+    ? parseAuthorities(authoritiesCookie)
+    : [];
   const primaryAuthority = authorities[0] ?? "authenticated";
   let userType: string | undefined;
 
@@ -421,7 +527,9 @@ function parseAuthorities(authoritiesCookie: string) {
     const parsed = JSON.parse(authoritiesCookie);
 
     return Array.isArray(parsed)
-      ? parsed.filter((authority): authority is string => typeof authority === "string")
+      ? parsed.filter(
+          (authority): authority is string => typeof authority === "string",
+        )
       : [];
   } catch {
     return [];
