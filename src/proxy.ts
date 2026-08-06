@@ -18,7 +18,9 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const accessToken = req.cookies.get(AUTH_COOKIE_NAMES.accessToken)?.value;
   const refreshToken = req.cookies.get(AUTH_COOKIE_NAMES.refreshToken)?.value;
-  const isProtectedPath = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
+  const isProtectedPath = PROTECTED_PATHS.some((path) =>
+    pathname.startsWith(path),
+  );
   const isLoginPath = LOGIN_PATHS.includes(pathname);
 
   if (isProtectedPath && !accessToken) {
@@ -30,7 +32,12 @@ export async function proxy(req: NextRequest) {
     return refreshed ?? NextResponse.redirect(new URL(LOGIN_PATH, req.url));
   }
 
-  if (isProtectedPath && accessToken && refreshToken && shouldRefreshAccessToken(accessToken)) {
+  if (
+    isProtectedPath &&
+    accessToken &&
+    refreshToken &&
+    shouldRefreshAccessToken(accessToken)
+  ) {
     const refreshed = await refreshSession(req, refreshToken);
     if (refreshed) {
       return refreshed;
@@ -38,9 +45,18 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isLoginPath && accessToken) {
-    const authorities = parseJsonCookie(req.cookies.get(AUTH_COOKIE_NAMES.authorities)?.value);
-    const passwordChangeRequired = req.cookies.get(AUTH_COOKIE_NAMES.passwordChangeRequired)?.value === "true";
-    return NextResponse.redirect(new URL(getPostLoginRedirect(authorities, passwordChangeRequired), req.url));
+    const authorities = parseJsonCookie(
+      req.cookies.get(AUTH_COOKIE_NAMES.authorities)?.value,
+    );
+    const passwordChangeRequired =
+      req.cookies.get(AUTH_COOKIE_NAMES.passwordChangeRequired)?.value ===
+      "true";
+    return NextResponse.redirect(
+      new URL(
+        getPostLoginRedirect(authorities, passwordChangeRequired),
+        req.url,
+      ),
+    );
   }
 
   return NextResponse.next();
@@ -63,7 +79,8 @@ type RefreshResponse = {
 };
 
 async function refreshSession(req: NextRequest, refreshToken: string) {
-  const tenantId = req.cookies.get(AUTH_COOKIE_NAMES.tenantId)?.value ?? getDefaultTenantId();
+  const tenantId =
+    req.cookies.get(AUTH_COOKIE_NAMES.tenantId)?.value ?? getDefaultTenantId();
   const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
     method: "POST",
     headers: {
@@ -72,9 +89,10 @@ async function refreshSession(req: NextRequest, refreshToken: string) {
     },
     body: JSON.stringify({ refreshToken }),
   }).catch(() => null);
-  const apiResponse = (await response?.json().catch(() => null)) as
-    | { data?: RefreshResponse; success?: boolean }
-    | null;
+  const apiResponse = (await response?.json().catch(() => null)) as {
+    data?: RefreshResponse;
+    success?: boolean;
+  } | null;
 
   if (!response?.ok || !apiResponse?.success || !apiResponse.data) {
     return null;
@@ -82,15 +100,20 @@ async function refreshSession(req: NextRequest, refreshToken: string) {
 
   const auth = apiResponse.data;
   const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("cookie", mergeCookieHeader(req.headers.get("cookie") ?? "", {
-    [AUTH_COOKIE_NAMES.accessToken]: auth.accessToken,
-    [AUTH_COOKIE_NAMES.refreshToken]: auth.refreshToken,
-    [AUTH_COOKIE_NAMES.tenantId]: auth.tenantId,
-    [AUTH_COOKIE_NAMES.userId]: auth.userId,
-    [AUTH_COOKIE_NAMES.username]: auth.username,
-    [AUTH_COOKIE_NAMES.authorities]: JSON.stringify(auth.authorities),
-    [AUTH_COOKIE_NAMES.passwordChangeRequired]: String(auth.passwordChangeRequired),
-  }));
+  requestHeaders.set(
+    "cookie",
+    mergeCookieHeader(req.headers.get("cookie") ?? "", {
+      [AUTH_COOKIE_NAMES.accessToken]: auth.accessToken,
+      [AUTH_COOKIE_NAMES.refreshToken]: auth.refreshToken,
+      [AUTH_COOKIE_NAMES.tenantId]: auth.tenantId,
+      [AUTH_COOKIE_NAMES.userId]: auth.userId,
+      [AUTH_COOKIE_NAMES.username]: auth.username,
+      [AUTH_COOKIE_NAMES.authorities]: JSON.stringify(auth.authorities),
+      [AUTH_COOKIE_NAMES.passwordChangeRequired]: String(
+        auth.passwordChangeRequired,
+      ),
+    }),
+  );
 
   const nextResponse = NextResponse.next({
     request: {
@@ -104,12 +127,36 @@ async function refreshSession(req: NextRequest, refreshToken: string) {
 function setAuthCookies(response: NextResponse, auth: RefreshResponse) {
   const refreshTokenMaxAge = getRefreshTokenMaxAge(auth.refreshTokenExpiresAt);
 
-  response.cookies.set(AUTH_COOKIE_NAMES.accessToken, auth.accessToken, getCookieOptions(auth.accessTokenExpiresInSeconds));
-  response.cookies.set(AUTH_COOKIE_NAMES.refreshToken, auth.refreshToken, getCookieOptions(refreshTokenMaxAge));
-  response.cookies.set(AUTH_COOKIE_NAMES.tenantId, auth.tenantId, getCookieOptions(refreshTokenMaxAge));
-  response.cookies.set(AUTH_COOKIE_NAMES.userId, auth.userId, getCookieOptions(refreshTokenMaxAge));
-  response.cookies.set(AUTH_COOKIE_NAMES.username, auth.username, getCookieOptions(refreshTokenMaxAge));
-  response.cookies.set(AUTH_COOKIE_NAMES.authorities, JSON.stringify(auth.authorities), getCookieOptions(refreshTokenMaxAge));
+  response.cookies.set(
+    AUTH_COOKIE_NAMES.accessToken,
+    auth.accessToken,
+    getCookieOptions(auth.accessTokenExpiresInSeconds),
+  );
+  response.cookies.set(
+    AUTH_COOKIE_NAMES.refreshToken,
+    auth.refreshToken,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  response.cookies.set(
+    AUTH_COOKIE_NAMES.tenantId,
+    auth.tenantId,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  response.cookies.set(
+    AUTH_COOKIE_NAMES.userId,
+    auth.userId,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  response.cookies.set(
+    AUTH_COOKIE_NAMES.username,
+    auth.username,
+    getCookieOptions(refreshTokenMaxAge),
+  );
+  response.cookies.set(
+    AUTH_COOKIE_NAMES.authorities,
+    JSON.stringify(auth.authorities),
+    getCookieOptions(refreshTokenMaxAge),
+  );
   response.cookies.set(
     AUTH_COOKIE_NAMES.passwordChangeRequired,
     String(auth.passwordChangeRequired),
@@ -123,7 +170,9 @@ function shouldRefreshAccessToken(accessToken: string) {
     return false;
   }
 
-  return payload.exp - Math.floor(Date.now() / 1000) <= REFRESH_THRESHOLD_SECONDS;
+  return (
+    payload.exp - Math.floor(Date.now() / 1000) <= REFRESH_THRESHOLD_SECONDS
+  );
 }
 
 function parseJwtPayload(token: string) {
@@ -133,17 +182,20 @@ function parseJwtPayload(token: string) {
   }
 
   try {
-    return JSON.parse(atob(payload.replaceAll("-", "+").replaceAll("_", "/"))) as { exp?: number };
+    return JSON.parse(
+      atob(payload.replaceAll("-", "+").replaceAll("_", "/")),
+    ) as { exp?: number };
   } catch {
     return null;
   }
 }
 
 function getApiBaseUrl() {
-  return (process.env.BACKEND_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(
-    /\/$/,
-    "",
-  );
+  return (
+    process.env.BACKEND_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    DEFAULT_API_BASE_URL
+  ).replace(/\/$/, "");
 }
 
 function getDefaultTenantId() {
@@ -154,7 +206,9 @@ function getCookieOptions(maxAge: number) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure:
+      process.env.AUTH_COOKIE_SECURE !== "false" &&
+      process.env.NODE_ENV === "production",
     path: "/",
     maxAge,
   };
@@ -170,7 +224,10 @@ function getRefreshTokenMaxAge(refreshTokenExpiresAt: string) {
   return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
 }
 
-function mergeCookieHeader(currentCookieHeader: string, values: Record<string, string>) {
+function mergeCookieHeader(
+  currentCookieHeader: string,
+  values: Record<string, string>,
+) {
   const cookies = new Map(
     currentCookieHeader
       .split(";")
@@ -200,20 +257,30 @@ function parseJsonCookie(value?: string) {
 
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
   } catch {
     return [];
   }
 }
 
-function getPostLoginRedirect(authorities: string[] = [], passwordChangeRequired = false) {
+function getPostLoginRedirect(
+  authorities: string[] = [],
+  passwordChangeRequired = false,
+) {
   if (passwordChangeRequired) {
     return CHANGE_PASSWORD_PATH;
   }
 
-  return isMerchantAuthorities(authorities) ? MERCHANT_DASHBOARD_PATH : DASHBOARD_PATH;
+  return isMerchantAuthorities(authorities)
+    ? MERCHANT_DASHBOARD_PATH
+    : DASHBOARD_PATH;
 }
 
 function isMerchantAuthorities(authorities: string[] = []) {
-  return authorities.some((authority) => authority === "ROLE_MERCHANT_ADMIN" || authority === "ROLE_MERCHANT");
+  return authorities.some(
+    (authority) =>
+      authority === "ROLE_MERCHANT_ADMIN" || authority === "ROLE_MERCHANT",
+  );
 }
