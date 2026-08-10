@@ -1,7 +1,16 @@
 import { authenticatedBackendFetch } from "@/lib/auth/auth.server";
 import type { ApiResponse } from "@/lib/auth/auth.types";
 
-import type { ChangeUserStatusRequest, PageResponse, UpdateUserRequest, UserResponse } from "./iam.types";
+import type { ChangeUserStatusRequest, CreateUserRequest, PageResponse, UpdateUserRequest, UserResponse } from "./iam.types";
+
+type ApiErrorResponse = {
+  details?: Array<{
+    field?: string;
+    message?: string;
+    rejectedValue?: unknown;
+  }> | null;
+  message?: string | null;
+};
 
 type ListUsersParams = {
   page: number;
@@ -51,6 +60,23 @@ export async function getUser(userId: string) {
   return apiResponse.data;
 }
 
+export async function createUser(payload: CreateUserRequest) {
+  const response = await authenticatedBackendFetch("/iam/users", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const apiResponse = (await response.json().catch(() => null)) as (ApiResponse<UserResponse> & ApiErrorResponse) | null;
+
+  if (!response.ok || !apiResponse?.success || !apiResponse.data) {
+    throw new Error(formatApiError(apiResponse, "Unable to create user."));
+  }
+
+  return apiResponse.data;
+}
+
 export async function updateUser(userId: string, payload: UpdateUserRequest) {
   const response = await authenticatedBackendFetch(`/iam/users/${userId}`, {
     method: "PATCH",
@@ -66,6 +92,21 @@ export async function updateUser(userId: string, payload: UpdateUserRequest) {
   }
 
   return apiResponse.data;
+}
+
+function formatApiError(apiResponse: ApiErrorResponse | null, fallbackMessage: string) {
+  const details = apiResponse?.details
+    ?.map((detail) => {
+      const field = detail.field ? `${detail.field}: ` : "";
+      return detail.message ? `${field}${detail.message}` : null;
+    })
+    .filter(Boolean);
+
+  if (details?.length) {
+    return details.join(" | ");
+  }
+
+  return apiResponse?.message ?? fallbackMessage;
 }
 
 export async function changeUserStatus(userId: string, payload: ChangeUserStatusRequest) {

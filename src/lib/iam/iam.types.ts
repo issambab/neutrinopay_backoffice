@@ -37,6 +37,19 @@ export type UpdateUserRequest = {
   metadata?: Record<string, unknown> | null;
 };
 
+export type CreateUserRequest = {
+  externalReference?: string | null;
+  phoneNumber?: string | null;
+  email?: string | null;
+  fullName: string;
+  userType: string;
+  status?: string | null;
+  mfaEnabled?: boolean;
+  metadata?: Record<string, unknown> | null;
+  password?: string | null;
+  passwordChangeRequired?: boolean | null;
+};
+
 export type ChangeUserStatusRequest = {
   status: string;
 };
@@ -63,7 +76,7 @@ export type PermissionResponse = {
   createdAt: string;
 };
 
-export type RoleScope = "platform" | "tenant" | "business" | "station" | "wallet" | "fleet_company" | "terminal";
+export type RoleScope = "platform" | "tenant" | "business" | "agency" | "station" | "wallet" | "fleet_company" | "terminal";
 
 export type CreateRoleRequest = {
   code: string;

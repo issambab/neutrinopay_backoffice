@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import {
+  AGENT_DASHBOARD_PATH,
   AUTH_COOKIE_NAMES,
   CHANGE_PASSWORD_PATH,
   CUSTOMER_DASHBOARD_PATH,
@@ -387,6 +388,10 @@ export function getPostLoginRedirect(
     return MERCHANT_DASHBOARD_PATH;
   }
 
+  if (isCashAgentAuthorities(authorities)) {
+    return AGENT_DASHBOARD_PATH;
+  }
+
   if (isCustomerAuthorities(authorities)) {
     return CUSTOMER_DASHBOARD_PATH;
   }
@@ -412,6 +417,15 @@ export function isMerchantAuthorities(authorities: string[] = []) {
   return authorities.some(
     (authority) =>
       authority === "ROLE_MERCHANT_ADMIN" || authority === "ROLE_MERCHANT",
+  );
+}
+
+export function isCashAgentAuthorities(authorities: string[] = []) {
+  return authorities.some(
+    (authority) =>
+      authority === "ROLE_CASH_AGENT" ||
+      authority === "cash.cash_in.create" ||
+      authority === "cash.cash_out.create",
   );
 }
 
@@ -508,7 +522,11 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     userType = (await getCurrentUserProfile()).user.userType;
   } catch {
-    userType = isMerchantAuthorities(authorities) ? "merchant" : undefined;
+    userType = isMerchantAuthorities(authorities)
+      ? "merchant"
+      : isCashAgentAuthorities(authorities)
+        ? "cash_agent"
+        : undefined;
   }
 
   return {

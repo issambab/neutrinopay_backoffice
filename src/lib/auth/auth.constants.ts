@@ -13,4 +13,5 @@ export const CHANGE_PASSWORD_PATH = "/auth/change-password";
 export const DASHBOARD_PATH = "/dashboard/default";
 export const MERCHANT_DASHBOARD_PATH = "/merchant/dashboard";
 export const CUSTOMER_DASHBOARD_PATH = "/user/dashboard";
+export const AGENT_DASHBOARD_PATH = "/agent/dashboard";
 export const DEFAULT_TENANT_ID = "11111111-1111-1111-1111-111111111111";

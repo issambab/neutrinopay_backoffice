@@ -3,6 +3,7 @@ import {
   Building2,
   ChartNoAxesCombined,
   FileWarning,
+  Landmark,
   LayoutDashboard,
   type LucideIcon,
   Settings,
@@ -75,6 +76,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Boutiques",
         url: "/dashboard/stores",
         icon: ShoppingBag,
+      },
+      {
+        title: "Agences",
+        url: "/dashboard/agencies",
+        icon: Landmark,
       },
       {
         title: "Paiement",
