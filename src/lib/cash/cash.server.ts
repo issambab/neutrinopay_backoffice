@@ -4,6 +4,8 @@ import type { ApiResponse } from "@/lib/auth/auth.types";
 import type {
   AgencyResponse,
   CashAgentContractResponse,
+  CashOperationListParams,
+  CashOperationResponse,
   CreateAgencyRequest,
   CreateCashAgentContractRequest,
   PageResponse,
@@ -76,6 +78,21 @@ export async function changeAgencyAgentStatus(
 export async function getCurrentAgentProfile() {
   const response = await authenticatedBackendFetch("/agent/me");
   return readApiResponse<CashAgentContractResponse>(response, "Unable to load cash agent profile.");
+}
+
+export async function getCashOperation(operationId: string) {
+  const response = await authenticatedBackendFetch(`/cash-operations/${operationId}`);
+  return readApiResponse<CashOperationResponse>(response, "Unable to load cash operation.");
+}
+
+export async function listCashOperations(params: CashOperationListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "operationType", params.operationType);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "q", params.q);
+
+  const response = await authenticatedBackendFetch(`/cash-operations?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<CashOperationResponse>>(response, "Unable to load cash operations.");
 }
 
 function paginationParams({ page = 0, size = 20, sort = "createdAt,desc" }: ListParams) {

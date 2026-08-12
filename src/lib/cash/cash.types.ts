@@ -52,6 +52,31 @@ export type CashAgentContractResponse = {
   updatedAt?: string | null;
 };
 
+export type CashOperationResponse = {
+  id: string;
+  tenantId: string;
+  agencyId: string;
+  agencyCode: string;
+  agentContractId: string;
+  agentUserId: string;
+  customerUserId: string;
+  customerName?: string | null;
+  customerWalletId: string;
+  operationType: "cash_in" | "cash_out";
+  status: "otp_pending" | "prepared" | "posted" | "failed" | "cancelled" | string;
+  amountMinor: number;
+  currency: string;
+  otpChallengeId?: string | null;
+  preparedAt?: string | null;
+  ledgerTransactionId?: string | null;
+  postedAt?: string | null;
+  failedAt?: string | null;
+  failureReason?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt?: string | null;
+};
+
 export type CreateAgencyRequest = {
   agencyCode: string;
   name: string;
@@ -87,4 +112,13 @@ export type CreateCashAgentContractRequest = {
 
 export type UpdateCashAgentContractStatusRequest = {
   status: LifecycleStatus;
+};
+
+export type CashOperationListParams = {
+  operationType?: string;
+  page?: number;
+  q?: string;
+  size?: number;
+  sort?: string;
+  status?: string;
 };

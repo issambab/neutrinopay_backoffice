@@ -80,6 +80,28 @@ export type WalletTransactionResponse = {
   createdAt: string;
 };
 
+export type WalletBalanceResponse = {
+  walletId: string;
+  accountAddress: string;
+  currency: string;
+  asset: string;
+  availableBalanceMinor: number;
+  source: string;
+  asOf: string;
+};
+
+export type WalletReconciliationResponse = {
+  walletId: string;
+  accountAddress: string;
+  currency: string;
+  asset: string;
+  formanceBalanceMinor: number;
+  projectedBalanceMinor: number;
+  differenceMinor: number;
+  status: "matched" | "mismatched";
+  checkedAt: string;
+};
+
 export type CustomerWalletEligibilityResponse = {
   blockingReasons: string[];
   eligible: boolean;

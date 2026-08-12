@@ -6,6 +6,7 @@ import {
   Landmark,
   LayoutDashboard,
   type LucideIcon,
+  ReceiptText,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -81,6 +82,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Agences",
         url: "/dashboard/agencies",
         icon: Landmark,
+      },
+      {
+        title: "Operations cash",
+        url: "/dashboard/cash-operations",
+        icon: ReceiptText,
       },
       {
         title: "Paiement",

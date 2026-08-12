@@ -7,6 +7,8 @@ import type {
   PageResponse,
   UpdateWalletStatusRequest,
   WalletAccountResponse,
+  WalletBalanceResponse,
+  WalletReconciliationResponse,
   WalletResponse,
   WalletTransactionResponse,
 } from "./wallet.types";
@@ -81,6 +83,16 @@ export async function changeAdminWalletStatus(walletId: string, payload: UpdateW
 export async function listAdminWalletAccounts(walletId: string) {
   const response = await authenticatedBackendFetch(`/wallets/${walletId}/accounts`);
   return readApiResponse<WalletAccountResponse[]>(response, "Unable to load wallet accounts.");
+}
+
+export async function getAdminWalletBalance(walletId: string) {
+  const response = await authenticatedBackendFetch(`/wallets/${walletId}/balance`);
+  return readApiResponse<WalletBalanceResponse>(response, "Unable to load wallet balance.");
+}
+
+export async function getAdminWalletReconciliation(walletId: string) {
+  const response = await authenticatedBackendFetch(`/wallets/${walletId}/reconciliation`);
+  return readApiResponse<WalletReconciliationResponse>(response, "Unable to load wallet reconciliation.");
 }
 
 export async function listAdminWalletTransactions(walletId: string, params: ListParams = {}) {

@@ -28,3 +28,29 @@ export function formatMinorMoney(amountMinor: number, currency = "TND") {
     style: "currency",
   }).format(amountMinor / 1000);
 }
+
+export function formatAssetMinorMoney(amountMinor: number, currency = "TND", asset?: string | null) {
+  const fractionDigits = assetMinorUnits(asset);
+
+  return new Intl.NumberFormat("fr-TN", {
+    currency,
+    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: fractionDigits,
+    style: "currency",
+  }).format(amountMinor / 10 ** fractionDigits);
+}
+
+function assetMinorUnits(asset?: string | null) {
+  if (!asset) {
+    return 2;
+  }
+
+  const [, precision] = asset.split("/");
+  const parsed = Number(precision);
+
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 6) {
+    return 2;
+  }
+
+  return parsed;
+}

@@ -19,12 +19,26 @@ import { getUser } from "@/lib/iam/users.server";
 import { getKycProfileByOwner, listKycProfileDocuments } from "@/lib/kyc/kyc.server";
 import type { KycDocumentResponse, KycProfileResponse } from "@/lib/kyc/kyc.types";
 import { cn } from "@/lib/utils";
-import { getAdminCustomerWalletEligibility, listAdminWallets } from "@/lib/wallet/wallet.server";
-import type { CustomerWalletEligibilityResponse, WalletResponse } from "@/lib/wallet/wallet.types";
+import {
+  getAdminCustomerWalletEligibility,
+  getAdminWalletBalance,
+  getAdminWalletReconciliation,
+  listAdminWallets,
+  listAdminWalletTransactions,
+} from "@/lib/wallet/wallet.server";
+import type {
+  CustomerWalletEligibilityResponse,
+  WalletBalanceResponse,
+  WalletReconciliationResponse,
+  WalletResponse,
+  WalletTransactionResponse,
+} from "@/lib/wallet/wallet.types";
 
 import { KycAdminPanel } from "../../kyc/_components/kyc-admin-panel";
 import { UserEditForm } from "./_components/user-edit-form";
 import { UserWalletCard } from "./_components/user-wallet-card";
+import { UserWalletLedgerCard } from "./_components/user-wallet-ledger-card";
+import { UserWalletTransactionsCard } from "./_components/user-wallet-transactions-card";
 
 type UserDetailPageProps = {
   params: Promise<{
@@ -38,6 +52,11 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   try {
     const user = await getUser(userId);
     const wallet = user.userType === "client" ? await safeGetUserWallet(user.id) : null;
+    const [walletBalance, walletReconciliation] =
+      wallet && user.userType === "client"
+        ? await Promise.all([safeGetWalletBalance(wallet.id), safeGetWalletReconciliation(wallet.id)])
+        : [null, null];
+    const walletTransactions = wallet && user.userType === "client" ? await safeGetWalletTransactions(wallet.id) : null;
     const kycProfile = user.userType === "client" ? await safeGetUserKycProfile(user.id) : null;
     const kycDocuments = kycProfile ? await safeGetUserKycDocuments(kycProfile.id) : [];
     const complianceCases = user.userType === "client" ? await safeGetUserComplianceCases(user.id) : [];
@@ -87,6 +106,10 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
         </Card>
 
         {user.userType === "client" ? <UserWalletCard wallet={wallet} /> : null}
+        {user.userType === "client" ? (
+          <UserWalletLedgerCard balance={walletBalance} reconciliation={walletReconciliation} wallet={wallet} />
+        ) : null}
+        {user.userType === "client" ? <UserWalletTransactionsCard transactions={walletTransactions} /> : null}
         {user.userType === "client" ? <UserEligibilityCard eligibility={eligibility} /> : null}
 
         {user.userType === "client" ? (
@@ -142,6 +165,35 @@ async function safeGetUserComplianceCases(userId: string): Promise<ComplianceCas
 async function safeGetUserEligibility(userId: string): Promise<CustomerWalletEligibilityResponse | null> {
   try {
     return await getAdminCustomerWalletEligibility(userId);
+  } catch {
+    return null;
+  }
+}
+
+async function safeGetWalletBalance(walletId: string): Promise<WalletBalanceResponse | null> {
+  try {
+    return await getAdminWalletBalance(walletId);
+  } catch {
+    return null;
+  }
+}
+
+async function safeGetWalletReconciliation(walletId: string): Promise<WalletReconciliationResponse | null> {
+  try {
+    return await getAdminWalletReconciliation(walletId);
+  } catch {
+    return null;
+  }
+}
+
+async function safeGetWalletTransactions(walletId: string): Promise<WalletTransactionResponse[] | null> {
+  try {
+    const transactions = await listAdminWalletTransactions(walletId, {
+      page: 0,
+      size: 10,
+      sort: "createdAt,desc",
+    });
+    return transactions.content;
   } catch {
     return null;
   }
