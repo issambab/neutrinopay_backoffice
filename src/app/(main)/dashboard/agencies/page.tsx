@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-import { Building2, Landmark, ShieldCheck, UserRoundCheck } from "lucide-react";
+import { Building2, Landmark, ShieldCheck, UserRoundCheck, WalletCards } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAgencies, listAgencyAgents } from "@/lib/cash/cash.server";
@@ -58,19 +58,38 @@ export default async function AgenciesPage({ searchParams }: AgenciesPageProps) 
 
     return (
       <div className="flex flex-col gap-4 md:gap-6">
-        <div>
-          <h1 className="font-semibold text-2xl tracking-tight">Agences cash</h1>
-          <p className="text-muted-foreground text-sm">
-            Administrez les points d’agence et les agents autorises pour les operations cash-in/cash-out.
-          </p>
-        </div>
+        <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+          <div className="grid gap-5 border-b bg-muted/20 p-5 lg:grid-cols-[minmax(0,1fr)_24rem] lg:p-6">
+            <div>
+              <p className="font-medium text-muted-foreground text-sm">Cash network control</p>
+              <h1 className="mt-1 font-semibold text-2xl tracking-tight md:text-3xl">Agences cash</h1>
+              <p className="mt-2 max-w-3xl text-muted-foreground text-sm">
+                Pilotez les agences, les agents autorises, les plafonds et les commissions appliquees aux operations
+                Cash-in/Cash-out.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-background p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-muted-foreground text-sm">Contrats actifs</p>
+                  <p className="mt-1 font-semibold text-3xl tracking-tight">{activeContracts}</p>
+                </div>
+                <WalletCards className="size-6 text-muted-foreground" />
+              </div>
+              <p className="mt-3 border-t pt-3 text-muted-foreground text-xs">
+                Les changements de commission affectent les nouvelles operations. Les operations deja preparees gardent
+                leur breakdown fige.
+              </p>
+            </div>
+          </div>
 
-        <div className="grid gap-3 md:grid-cols-4">
-          <MetricCard icon={Building2} label="Agences" value={agencies.totalElements.toString()} />
-          <MetricCard icon={Landmark} label="Actives" value={activeAgencies.toString()} />
-          <MetricCard icon={UserRoundCheck} label="Agents cash" value={cashAgents.totalElements.toString()} />
-          <MetricCard icon={ShieldCheck} label="Contrats actifs" value={activeContracts.toString()} />
-        </div>
+          <div className="grid gap-3 p-4 md:grid-cols-4">
+            <MetricCard icon={Building2} label="Agences" value={agencies.totalElements.toString()} />
+            <MetricCard icon={Landmark} label="Actives" value={activeAgencies.toString()} />
+            <MetricCard icon={UserRoundCheck} label="Agents cash" value={cashAgents.totalElements.toString()} />
+            <MetricCard icon={ShieldCheck} label="Contrats actifs" value={activeContracts.toString()} />
+          </div>
+        </section>
 
         <AgenciesAdminPanel
           agents={cashAgents.content}
@@ -111,12 +130,12 @@ function MetricCard({
 }) {
   return (
     <Card size="sm">
-      <CardContent className="flex items-center justify-between">
-        <div>
+      <CardContent className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-muted-foreground text-sm">{label}</p>
-          <p className="font-semibold text-2xl">{value}</p>
+          <p className="truncate font-semibold text-2xl">{value}</p>
         </div>
-        <Icon className="size-5 text-muted-foreground" />
+        <Icon className="size-5 shrink-0 text-muted-foreground" />
       </CardContent>
     </Card>
   );

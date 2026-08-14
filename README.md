@@ -1,4 +1,4 @@
-# neutrinopay_backoffice test
+# neutrinopay_backoffice
 
 ## Wallet Backoffice
 

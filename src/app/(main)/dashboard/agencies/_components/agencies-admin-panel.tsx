@@ -1,19 +1,25 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { useState, useTransition } from "react";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   Building2,
+  CalendarClock,
   Loader2,
   MapPin,
+  Pencil,
   Plus,
+  Save,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   UserPlus,
   UserRoundPlus,
   UsersRound,
+  X,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -54,17 +60,17 @@ export function AgenciesAdminPanel({ agencies, agents, contractsByAgencyId, filt
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
-      <Card>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <Card className="overflow-hidden">
         <CardHeader className="gap-3 border-b">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="size-5" />
-                Liste des agences
+                Reseau agences
               </CardTitle>
               <p className="mt-1 text-muted-foreground text-sm">
-                Chaque agence regroupe les agents cash autorises et leurs plafonds operationnels.
+                Consultez les agences, agents cash, plafonds et partages de commissions.
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-[minmax(0,280px)_190px]">
@@ -132,9 +138,9 @@ function AgencyCard({
   const activeContracts = contracts.filter((contract) => contract.status === "active");
 
   return (
-    <article className="rounded-lg border bg-card p-4">
+    <article className="overflow-hidden rounded-lg border bg-card">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-semibold text-base">{agency.name}</h2>
             <Badge className={cashStatusClassName(agency.status)} variant="outline">
@@ -153,10 +159,12 @@ function AgencyCard({
             </span>
           </div>
         </div>
-        <AssignAgentForm agencyId={agency.id} agents={agents} />
+        <div className="border-t bg-muted/15 p-4 lg:w-[23rem] lg:border-t-0 lg:border-l">
+          <AssignAgentForm agencyId={agency.id} agents={agents} />
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-2">
+      <div className="grid gap-2 border-t bg-background p-3">
         {contracts.length === 0 ? (
           <div className="rounded-md border border-dashed p-4 text-muted-foreground text-sm">
             Aucun agent cash affecte a cette agence.
@@ -303,10 +311,11 @@ function AssignAgentForm({ agencyId, agents }: { agencyId: string; agents: UserR
       const response = await fetch(`/api/cash/agencies/${agencyId}/agents`, {
         body: JSON.stringify({
           agentUserId,
-          commissionMode: "fixed",
+          commissionMode: "percent",
           commissionValue: Number(formData.get("commissionValue") || 0),
           dailyLimitMinor: dinarToMinor(formData.get("dailyLimit")),
           monthlyLimitMinor: dinarToMinor(formData.get("monthlyLimit")),
+          platformCommissionSharePercent: Number(formData.get("platformCommissionSharePercent") || 0),
           status: String(formData.get("status") || "pending"),
         }),
         headers: { "Content-Type": "application/json" },
@@ -325,7 +334,7 @@ function AssignAgentForm({ agencyId, agents }: { agencyId: string; agents: UserR
   }
 
   return (
-    <form className="grid w-full gap-2 rounded-md border bg-muted/20 p-3 lg:w-[22rem]" onSubmit={onSubmit}>
+    <form className="grid w-full gap-2" onSubmit={onSubmit}>
       <div className="flex items-center gap-2 text-sm">
         <UserPlus className="size-4 text-muted-foreground" />
         <span className="font-medium">Affecter agent</span>
@@ -347,7 +356,17 @@ function AssignAgentForm({ agencyId, agents }: { agencyId: string; agents: UserR
         <Input name="dailyLimit" inputMode="decimal" placeholder="Jour TND" />
         <Input name="monthlyLimit" inputMode="decimal" placeholder="Mois TND" />
       </div>
-      <Input name="commissionValue" inputMode="decimal" placeholder="Commission fixe" />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Input name="commissionValue" inputMode="decimal" placeholder="Commission agent %" />
+        <Input
+          name="platformCommissionSharePercent"
+          inputMode="decimal"
+          max={100}
+          min={0}
+          placeholder="Plateforme %"
+          type="number"
+        />
+      </div>
       {error ? <p className="text-destructive text-xs">{error}</p> : null}
       <Button disabled={isPending || agents.length === 0} size="sm" type="submit">
         {isPending ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
@@ -467,11 +486,17 @@ function CreateCashAgentCard() {
 }
 
 function AgentContractRow({ contract }: { contract: CashAgentContractResponse }) {
+  const [isEditing, setIsEditing] = useState(false);
+
+  if (isEditing) {
+    return <EditAgentContractForm contract={contract} onCancel={() => setIsEditing(false)} />;
+  }
+
   return (
-    <div className="grid gap-3 rounded-md border bg-muted/15 p-3 text-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-      <div className="min-w-0">
+    <div className="grid gap-3 rounded-md border bg-muted/10 p-3 text-sm xl:grid-cols-[minmax(14rem,1fr)_minmax(0,32rem)_auto] xl:items-center">
+      <div className="min-w-0 border-b pb-3 xl:border-b-0 xl:pb-0">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium">{contract.agentName ?? contract.agentEmail ?? "Agent cash"}</p>
+          <p className="min-w-0 truncate font-medium">{contract.agentName ?? contract.agentEmail ?? "Agent cash"}</p>
           <Badge className={cashStatusClassName(contract.status)} variant="outline">
             {formatCashStatus(contract.status)}
           </Badge>
@@ -480,13 +505,195 @@ function AgentContractRow({ contract }: { contract: CashAgentContractResponse })
           {contract.agentEmail ?? contract.agentPhoneNumber ?? contract.agentUserId}
         </p>
       </div>
-      <div className="grid gap-1 text-muted-foreground text-xs sm:grid-cols-3 lg:text-right">
-        <span>Jour: {formatMinorAmount(contract.dailyLimitMinor)}</span>
-        <span>Mois: {formatMinorAmount(contract.monthlyLimitMinor)}</span>
-        <span>Commission: {contract.commissionValue}</span>
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+        <ContractMetric icon={CalendarClock} label="Plafond jour" value={formatMinorAmount(contract.dailyLimitMinor)} />
+        <ContractMetric
+          icon={CalendarClock}
+          label="Plafond mois"
+          value={formatMinorAmount(contract.monthlyLimitMinor)}
+        />
+        <ContractMetric icon={SlidersHorizontal} label="Commission" value={formatCommissionValue(contract)} />
+        <ContractMetric
+          icon={ShieldCheck}
+          label="Part plateforme"
+          value={`${contract.platformCommissionSharePercent}%`}
+        />
       </div>
+      <Button type="button" variant="outline" size="sm" className="w-full xl:w-fit" onClick={() => setIsEditing(true)}>
+        <Pencil className="size-4" />
+        Modifier
+      </Button>
     </div>
   );
+}
+
+function EditAgentContractForm({ contract, onCancel }: { contract: CashAgentContractResponse; onCancel: () => void }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const status = String(formData.get("status") || contract.status);
+
+    startTransition(async () => {
+      const response = await fetch(`/api/cash/agencies/${contract.agencyId}/agents/${contract.id}`, {
+        body: JSON.stringify({
+          commissionMode: "percent",
+          commissionValue: Number(formData.get("commissionValue") || 0),
+          dailyLimitMinor: dinarToMinor(formData.get("dailyLimit")) ?? 0,
+          monthlyLimitMinor: dinarToMinor(formData.get("monthlyLimit")) ?? 0,
+          platformCommissionSharePercent: Number(formData.get("platformCommissionSharePercent") || 0),
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+
+      if (!response.ok) {
+        setError(body?.message ?? "Impossible de modifier le contrat.");
+        return;
+      }
+
+      if (status !== contract.status) {
+        const statusResponse = await fetch(`/api/cash/agencies/${contract.agencyId}/agents/${contract.id}/status`, {
+          body: JSON.stringify({ status }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        });
+        const statusBody = (await statusResponse.json().catch(() => null)) as { message?: string } | null;
+        if (!statusResponse.ok) {
+          setError(statusBody?.message ?? "Contrat modifie, mais le statut n'a pas ete mis a jour.");
+          return;
+        }
+      }
+
+      onCancel();
+      router.refresh();
+    });
+  }
+
+  return (
+    <form className="grid gap-3 rounded-md border border-sky-200 bg-sky-50/40 p-3 text-sm" onSubmit={onSubmit}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-medium">Modifier le contrat</p>
+          <p className="text-muted-foreground text-xs">
+            {contract.agentName ?? contract.agentEmail ?? contract.agentUserId}
+          </p>
+        </div>
+        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onCancel}>
+          <span className="sr-only">Annuler</span>
+          <X className="size-4" />
+        </Button>
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-1">
+          <Label htmlFor={`contract-${contract.id}-status`} className="text-muted-foreground text-xs">
+            Statut
+          </Label>
+          <NativeSelect id={`contract-${contract.id}-status`} name="status" defaultValue={contract.status}>
+            <NativeSelectOption value="pending">En attente</NativeSelectOption>
+            <NativeSelectOption value="active">Actif</NativeSelectOption>
+            <NativeSelectOption value="suspended">Suspendu</NativeSelectOption>
+            <NativeSelectOption value="closed">Ferme</NativeSelectOption>
+          </NativeSelect>
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor={`contract-${contract.id}-commission`} className="text-muted-foreground text-xs">
+            Commission agent %
+          </Label>
+          <Input
+            id={`contract-${contract.id}-commission`}
+            name="commissionValue"
+            defaultValue={contract.commissionValue}
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            type="number"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor={`contract-${contract.id}-platform-share`} className="text-muted-foreground text-xs">
+            Part plateforme %
+          </Label>
+          <Input
+            id={`contract-${contract.id}-platform-share`}
+            name="platformCommissionSharePercent"
+            defaultValue={contract.platformCommissionSharePercent}
+            inputMode="decimal"
+            max={100}
+            min={0}
+            step="0.01"
+            type="number"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor={`contract-${contract.id}-daily-limit`} className="text-muted-foreground text-xs">
+            Plafond jour TND
+          </Label>
+          <Input
+            id={`contract-${contract.id}-daily-limit`}
+            name="dailyLimit"
+            defaultValue={minorToDinar(contract.dailyLimitMinor)}
+            inputMode="decimal"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor={`contract-${contract.id}-monthly-limit`} className="text-muted-foreground text-xs">
+            Plafond mois TND
+          </Label>
+          <Input
+            id={`contract-${contract.id}-monthly-limit`}
+            name="monthlyLimit"
+            defaultValue={minorToDinar(contract.monthlyLimitMinor)}
+            inputMode="decimal"
+          />
+        </div>
+      </div>
+
+      {error ? <p className="text-destructive text-xs">{error}</p> : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+          <X className="size-4" />
+          Annuler
+        </Button>
+        <Button disabled={isPending} size="sm" type="submit">
+          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          Enregistrer
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function ContractMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <span className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] gap-x-2 rounded-md border bg-background px-2.5 py-2">
+      <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0">
+        <span className="block truncate text-[0.7rem] text-muted-foreground leading-4">{label}</span>
+        <span className="block truncate font-medium text-foreground text-xs leading-4">{value}</span>
+      </span>
+    </span>
+  );
+}
+
+function formatCommissionValue(contract: CashAgentContractResponse) {
+  return `${contract.commissionValue}%`;
 }
 
 function nullableText(value: FormDataEntryValue | null) {
@@ -518,4 +725,11 @@ function dinarToMinor(value: FormDataEntryValue | null) {
   }
 
   return Math.round(amount * 100);
+}
+
+function minorToDinar(value?: number | null) {
+  if (value == null) {
+    return "";
+  }
+  return String(value / 100);
 }
