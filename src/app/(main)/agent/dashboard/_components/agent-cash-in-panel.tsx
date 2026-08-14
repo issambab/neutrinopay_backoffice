@@ -2,17 +2,37 @@
 
 import { useMemo, useState, useTransition } from "react";
 
-import { CheckCircle2, Loader2, Search, Send, ShieldCheck, WalletCards } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Search,
+  Send,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import type { CashCustomerLookupResponse, CashOperationResponse } from "@/lib/cash/cash.types";
-import { cashStatusClassName, formatCashStatus, formatMinorAmount } from "@/lib/cash/cash-format";
+import type {
+  CashCustomerLookupResponse,
+  CashOperationResponse,
+} from "@/lib/cash/cash.types";
+import {
+  cashStatusClassName,
+  formatCashStatus,
+  formatMinorAmount,
+} from "@/lib/cash/cash-format";
 import { cn } from "@/lib/utils";
 
 type ApiPayload<T> = {
@@ -24,20 +44,34 @@ export function AgentCashInPanel() {
   const [customerLookup, setCustomerLookup] = useState("");
   const [amount, setAmount] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [customer, setCustomer] = useState<CashCustomerLookupResponse | null>(null);
-  const [operation, setOperation] = useState<CashOperationResponse | null>(null);
+  const [customer, setCustomer] = useState<CashCustomerLookupResponse | null>(
+    null,
+  );
+  const [operation, setOperation] = useState<CashOperationResponse | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const amountMinor = useMemo(() => parseTndAmountToMinor(amount), [amount]);
-  const canStart = Boolean(customer?.eligibility.eligible && amountMinor && amountMinor > 0);
-  const canConfirm = Boolean(operation?.status === "otp_pending" && operation.otpChallengeId && otpCode.trim());
+  const canStart = Boolean(
+    customer?.eligibility.eligible && amountMinor && amountMinor > 0,
+  );
+  const canConfirm = Boolean(
+    operation?.status === "otp_pending" &&
+    operation.otpChallengeId &&
+    otpCode.trim(),
+  );
   const canExecute = operation?.status === "prepared";
 
   function run(action: () => Promise<void>) {
     setError(null);
     startTransition(() => {
       action().catch((caughtError: unknown) => {
-        setError(caughtError instanceof Error ? caughtError.message : "Operation impossible pour le moment.");
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Operation impossible pour le moment.",
+        );
       });
     });
   }
@@ -46,15 +80,21 @@ export function AgentCashInPanel() {
     run(async () => {
       const lookup = customerLookup.trim();
       if (!lookup) {
-        throw new Error("Saisissez une reference client, un email ou un telephone.");
+        throw new Error(
+          "Saisissez une reference client, un email ou un telephone.",
+        );
       }
 
-      const response = await fetch(`/api/agent/customers/search?q=${encodeURIComponent(lookup)}`);
+      const response = await fetch(
+        `/api/agent/customers/search?q=${encodeURIComponent(lookup)}`,
+      );
       const payload = (await response.json().catch(() => ({}))) as ApiPayload<{
         customer?: CashCustomerLookupResponse;
       }>;
       if (!response.ok || !payload.customer) {
-        throw new Error(payload.message ?? "Client introuvable ou non eligible.");
+        throw new Error(
+          payload.message ?? "Client introuvable ou non eligible.",
+        );
       }
 
       setCustomer(payload.customer);
@@ -101,16 +141,19 @@ export function AgentCashInPanel() {
         throw new Error("Aucun challenge OTP disponible pour cette operation.");
       }
 
-      const response = await fetch(`/api/agent/cash-operations/${operation.id}/confirm`, {
-        body: JSON.stringify({
-          code: otpCode.trim(),
-          otpChallengeId: operation.otpChallengeId,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/agent/cash-operations/${operation.id}/confirm`,
+        {
+          body: JSON.stringify({
+            code: otpCode.trim(),
+            otpChallengeId: operation.otpChallengeId,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
         },
-        method: "PATCH",
-      });
+      );
       const payload = (await response.json().catch(() => ({}))) as ApiPayload<{
         operation?: CashOperationResponse;
       }>;
@@ -128,15 +171,18 @@ export function AgentCashInPanel() {
         throw new Error("Aucune operation a poster.");
       }
 
-      const response = await fetch(`/api/agent/cash-operations/${operation.id}/execute`, {
-        body: JSON.stringify({
-          idempotencyKey: `backoffice-agent-${operation.id}-${crypto.randomUUID()}`,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/agent/cash-operations/${operation.id}/execute`,
+        {
+          body: JSON.stringify({
+            idempotencyKey: `backoffice-agent-${operation.id}-${clientIdempotencySuffix()}`,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      });
+      );
       const payload = (await response.json().catch(() => ({}))) as ApiPayload<{
         operation?: CashOperationResponse;
       }>;
@@ -155,7 +201,9 @@ export function AgentCashInPanel() {
           <WalletCards className="size-5" />
           Cash-in client
         </CardTitle>
-        <CardDescription>Recherche client, OTP, puis posting Formance.</CardDescription>
+        <CardDescription>
+          Recherche client, OTP, puis posting Formance.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
@@ -167,7 +215,12 @@ export function AgentCashInPanel() {
               placeholder="Email, telephone ou reference"
               value={customerLookup}
             />
-            <Button disabled={isPending} onClick={searchCustomer} type="button" variant="secondary">
+            <Button
+              disabled={isPending}
+              onClick={searchCustomer}
+              type="button"
+              variant="secondary"
+            >
               {isPending ? <Loader2 className="animate-spin" /> : <Search />}
               Chercher
             </Button>
@@ -188,13 +241,20 @@ export function AgentCashInPanel() {
               placeholder="Ex: 25.000"
               value={amount}
             />
-            <Button disabled={isPending || !canStart} onClick={startCashIn} type="button">
+            <Button
+              disabled={isPending || !canStart}
+              onClick={startCashIn}
+              type="button"
+            >
               {isPending ? <Loader2 className="animate-spin" /> : <Send />}
               Initier
             </Button>
           </div>
           <p className="text-muted-foreground text-xs">
-            Montant prepare: {amountMinor ? formatMinorAmount(amountMinor) : formatMinorAmount(0)}
+            Montant prepare:{" "}
+            {amountMinor
+              ? formatMinorAmount(amountMinor)
+              : formatMinorAmount(0)}
           </p>
         </div>
 
@@ -205,7 +265,10 @@ export function AgentCashInPanel() {
                 <p className="text-muted-foreground text-xs">Operation</p>
                 <p className="truncate font-medium text-sm">{operation.id}</p>
               </div>
-              <Badge className={cashStatusClassName(operation.status)} variant="outline">
+              <Badge
+                className={cashStatusClassName(operation.status)}
+                variant="outline"
+              >
                 {formatCashStatus(operation.status)}
               </Badge>
             </div>
@@ -217,13 +280,30 @@ export function AgentCashInPanel() {
                 placeholder="Code OTP"
                 value={otpCode}
               />
-              <Button disabled={isPending || !canConfirm} onClick={confirmOtp} type="button" variant="secondary">
-                {isPending ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
+              <Button
+                disabled={isPending || !canConfirm}
+                onClick={confirmOtp}
+                type="button"
+                variant="secondary"
+              >
+                {isPending ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <ShieldCheck />
+                )}
                 Confirmer
               </Button>
             </div>
-            <Button disabled={isPending || !canExecute} onClick={executeCashIn} type="button">
-              {isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
+            <Button
+              disabled={isPending || !canExecute}
+              onClick={executeCashIn}
+              type="button"
+            >
+              {isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <CheckCircle2 />
+              )}
               Poster dans Formance
             </Button>
             {operation.ledgerTransactionId ? (
@@ -245,7 +325,11 @@ export function AgentCashInPanel() {
   );
 }
 
-function CustomerEligibilityCard({ customer }: { customer: CashCustomerLookupResponse }) {
+function CustomerEligibilityCard({
+  customer,
+}: {
+  customer: CashCustomerLookupResponse;
+}) {
   const blockingReasons = customer.eligibility.blockingReasons ?? [];
 
   return (
@@ -256,7 +340,9 @@ function CustomerEligibilityCard({ customer }: { customer: CashCustomerLookupRes
             {customer.fullName ?? customer.email ?? customer.externalReference}
           </p>
           <p className="truncate text-muted-foreground text-xs">
-            {[customer.email, customer.phoneNumber, customer.externalReference].filter(Boolean).join(" · ")}
+            {[customer.email, customer.phoneNumber, customer.externalReference]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
         <Badge
@@ -279,6 +365,28 @@ function CustomerEligibilityCard({ customer }: { customer: CashCustomerLookupRes
       ) : null}
     </div>
   );
+}
+
+function clientIdempotencySuffix() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
+    const values = new Uint32Array(4);
+    crypto.getRandomValues(values);
+    return Array.from(values, (value) =>
+      value.toString(16).padStart(8, "0"),
+    ).join("");
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function parseTndAmountToMinor(value: string) {
