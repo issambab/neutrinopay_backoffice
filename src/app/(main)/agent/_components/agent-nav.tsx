@@ -19,9 +19,9 @@ type AgentNavItem = {
 
 const NAV_ITEMS = [
   { href: "/agent/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/agent/cash-in", icon: Landmark, label: "Cash-in", disabled: true },
+  { href: "/agent/cash-in", icon: Landmark, label: "Cash-in" },
   { href: "/agent/cash-out", icon: ShieldCheck, label: "Cash-out", disabled: true },
-  { href: "/agent/operations", icon: ReceiptText, label: "Operations", disabled: true },
+  { href: "/agent/operations", icon: ReceiptText, label: "Operations" },
 ] satisfies AgentNavItem[];
 
 export function AgentNav() {
@@ -42,7 +42,8 @@ export function AgentNav() {
       <nav className="flex-1 space-y-1 p-3">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const itemPathname = item.href.split("#")[0];
+          const isActive = pathname === itemPathname && !item.href.includes("#");
 
           if (item.disabled) {
             return (

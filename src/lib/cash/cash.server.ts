@@ -3,14 +3,26 @@ import type { ApiResponse } from "@/lib/auth/auth.types";
 
 import type {
   AgencyResponse,
+  AgentFloatBalanceResponse,
+  AgentFloatTopupListParams,
+  AgentFloatTopupResponse,
+  AgentLedgerBalanceResponse,
+  ApproveAgentFloatTopupRequest,
   CashAgentContractResponse,
+  CashCustomerLookupResponse,
   CashOperationListParams,
   CashOperationResponse,
+  ConfirmCashOperationRequest,
   CreateAgencyRequest,
+  CreateAgentFloatTopupRequest,
   CreateCashAgentContractRequest,
+  ExecuteCashOperationRequest,
   PageResponse,
+  RejectAgentFloatTopupRequest,
+  StartCashOperationRequest,
   UpdateAgencyRequest,
   UpdateAgencyStatusRequest,
+  UpdateCashAgentContractRequest,
   UpdateCashAgentContractStatusRequest,
 } from "./cash.types";
 
@@ -75,9 +87,66 @@ export async function changeAgencyAgentStatus(
   return readApiResponse<CashAgentContractResponse>(response, "Unable to update cash agent contract.");
 }
 
+export async function updateAgencyAgentContract(
+  agencyId: string,
+  contractId: string,
+  payload: UpdateCashAgentContractRequest,
+) {
+  const response = await authenticatedBackendFetch(
+    `/agencies/${agencyId}/agents/${contractId}`,
+    jsonRequest("PATCH", payload),
+  );
+  return readApiResponse<CashAgentContractResponse>(response, "Unable to update cash agent contract.");
+}
+
 export async function getCurrentAgentProfile() {
   const response = await authenticatedBackendFetch("/agent/me");
   return readApiResponse<CashAgentContractResponse>(response, "Unable to load cash agent profile.");
+}
+
+export async function getCurrentAgentFloatBalance() {
+  const response = await authenticatedBackendFetch("/agent/float-balance");
+  return readApiResponse<AgentFloatBalanceResponse>(response, "Unable to load cash agent float balance.");
+}
+
+export async function getCurrentAgentEarningsBalance() {
+  const response = await authenticatedBackendFetch("/agent/earnings-balance");
+  return readApiResponse<AgentLedgerBalanceResponse>(response, "Unable to load cash agent earnings balance.");
+}
+
+export async function searchAgentCashCustomer(query: string) {
+  const searchParams = new URLSearchParams({ q: query });
+  const response = await authenticatedBackendFetch(`/agent/customers/search?${searchParams.toString()}`);
+  return readApiResponse<CashCustomerLookupResponse>(response, "Unable to search cash customer.");
+}
+
+export async function startAgentCashIn(payload: StartCashOperationRequest) {
+  const response = await authenticatedBackendFetch("/agent/cash-in", jsonRequest("POST", payload));
+  return readApiResponse<CashOperationResponse>(response, "Unable to start cash-in.");
+}
+
+export async function confirmAgentCashOperation(operationId: string, payload: ConfirmCashOperationRequest) {
+  const response = await authenticatedBackendFetch(
+    `/agent/cash-operations/${operationId}/confirm`,
+    jsonRequest("PATCH", payload),
+  );
+  return readApiResponse<CashOperationResponse>(response, "Unable to confirm cash operation.");
+}
+
+export async function executeAgentCashOperation(operationId: string, payload: ExecuteCashOperationRequest) {
+  const response = await authenticatedBackendFetch(
+    `/agent/cash-operations/${operationId}/execute`,
+    jsonRequest("POST", payload),
+  );
+  return readApiResponse<CashOperationResponse>(response, "Unable to execute cash operation.");
+}
+
+export async function listCurrentAgentCashOperations(params: CashOperationListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "operationType", params.operationType);
+  appendIfPresent(searchParams, "status", params.status);
+  const response = await authenticatedBackendFetch(`/agent/cash-operations?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<CashOperationResponse>>(response, "Unable to load agent cash operations.");
 }
 
 export async function getCashOperation(operationId: string) {
@@ -93,6 +162,43 @@ export async function listCashOperations(params: CashOperationListParams = {}) {
 
   const response = await authenticatedBackendFetch(`/cash-operations?${searchParams.toString()}`);
   return readApiResponse<PageResponse<CashOperationResponse>>(response, "Unable to load cash operations.");
+}
+
+export async function createAgentFloatTopup(payload: CreateAgentFloatTopupRequest) {
+  const response = await authenticatedBackendFetch("/agent-float-topups", jsonRequest("POST", payload));
+  return readApiResponse<AgentFloatTopupResponse>(response, "Unable to create agent float top-up.");
+}
+
+export async function listAgentFloatTopups(params: AgentFloatTopupListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "agencyId", params.agencyId);
+  appendIfPresent(searchParams, "agentUserId", params.agentUserId);
+  appendIfPresent(searchParams, "q", params.q);
+
+  const response = await authenticatedBackendFetch(`/agent-float-topups?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<AgentFloatTopupResponse>>(response, "Unable to load agent float top-ups.");
+}
+
+export async function getAgentFloatTopup(topupId: string) {
+  const response = await authenticatedBackendFetch(`/agent-float-topups/${topupId}`);
+  return readApiResponse<AgentFloatTopupResponse>(response, "Unable to load agent float top-up.");
+}
+
+export async function approveAgentFloatTopup(topupId: string, payload: ApproveAgentFloatTopupRequest) {
+  const response = await authenticatedBackendFetch(
+    `/agent-float-topups/${topupId}/approve`,
+    jsonRequest("POST", payload),
+  );
+  return readApiResponse<AgentFloatTopupResponse>(response, "Unable to approve agent float top-up.");
+}
+
+export async function rejectAgentFloatTopup(topupId: string, payload: RejectAgentFloatTopupRequest) {
+  const response = await authenticatedBackendFetch(
+    `/agent-float-topups/${topupId}/reject`,
+    jsonRequest("POST", payload),
+  );
+  return readApiResponse<AgentFloatTopupResponse>(response, "Unable to reject agent float top-up.");
 }
 
 function paginationParams({ page = 0, size = 20, sort = "createdAt,desc" }: ListParams) {
