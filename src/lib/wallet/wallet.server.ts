@@ -55,6 +55,11 @@ export async function getCurrentCustomerWalletEligibility() {
   return readApiResponse<CustomerWalletEligibilityResponse>(response, "Unable to load wallet eligibility.");
 }
 
+export async function getCurrentCustomerWalletBalance() {
+  const response = await authenticatedBackendFetch("/customer/wallet/balance");
+  return readApiResponse<WalletBalanceResponse>(response, "Unable to load customer wallet balance.");
+}
+
 export async function getAdminCustomerWalletEligibility(userId: string) {
   const response = await authenticatedBackendFetch(`/wallets/owners/user/${userId}/eligibility`);
   return readApiResponse<CustomerWalletEligibilityResponse>(response, "Unable to load customer wallet eligibility.");

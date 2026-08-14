@@ -25,6 +25,8 @@ Conventions :
 
 Interface branchee :
 
+- La page `user/dashboard` affiche le solde disponible client depuis Formance via `GET /api/v1/customer/wallet/balance`.
+- Si Formance est indisponible, le dashboard garde un fallback local pour ne pas bloquer l'affichage, mais la source est marquee `Local fallback`.
 - La page `dashboard/users/[userId]` affiche une carte `Solde ledger` pour les clients avec wallet.
 - La carte affiche le solde Formance, la projection locale, l'ecart et le statut `reconcilie` / `ecart detecte`.
 - Les montants Formance sont formates selon la precision de l'asset (`TND/2` = deux decimales).

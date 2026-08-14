@@ -21,29 +21,26 @@ import LogoNeutrinoCar from "@/components/icon/logo-neutrino-car";
 import { SimpleIcon } from "@/components/simple-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getCurrentUserProfile } from "@/lib/auth/auth.server";
 import type { CurrentUserResponse } from "@/lib/auth/auth.types";
 import {
   getCurrentCustomerWallet,
+  getCurrentCustomerWalletBalance,
   getCurrentCustomerWalletEligibility,
   listCurrentCustomerWalletTransactions,
 } from "@/lib/wallet/wallet.server";
 import type {
   CustomerWalletEligibilityResponse,
   WalletAccountResponse,
+  WalletBalanceResponse,
   WalletResponse,
   WalletTransactionResponse,
 } from "@/lib/wallet/wallet.types";
 import {
+  formatAssetMinorMoney,
   formatMinorMoney,
   formatWalletEnum,
   walletStatusClassName,
@@ -57,27 +54,20 @@ export default async function UserDashboardPage() {
     safeGetWallet(),
     safeGetEligibility(),
   ]);
-  const transactions = wallet ? await safeGetTransactions() : [];
-  const displayName =
-    profile.user.fullName ?? profile.user.email ?? "Utilisateur wallet";
-
+  const displayName = profile.user.fullName ?? profile.user.email ?? "Utilisateur wallet";
+  const [transactions, walletBalance] = wallet
+    ? await Promise.all([safeGetTransactions(), safeGetBalance()])
+    : [[], null];
   return (
     <div className="grid gap-6">
       <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <div className="flex flex-col gap-4 border-b bg-muted/25 px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-6">
           <div>
-            <p className="font-medium text-muted-foreground text-sm">
-              Compte wallet
-            </p>
-            <h1 className="font-semibold text-2xl tracking-tight">
-              {displayName}
-            </h1>
+            <p className="font-medium text-muted-foreground text-sm">Compte wallet</p>
+            <h1 className="font-semibold text-2xl tracking-tight">{displayName}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant="outline"
-              className={walletStatusClassName(wallet?.status ?? "pending")}
-            >
+            <Badge variant="outline" className={walletStatusClassName(wallet?.status ?? "pending")}>
               Wallet {formatWalletEnum(wallet?.status ?? "non cree")}
             </Badge>
             <Badge
@@ -96,6 +86,7 @@ export default async function UserDashboardPage() {
           <div className="grid gap-4">
             {wallet ? (
               <WalletOverviewPanel
+                balance={walletBalance}
                 displayName={displayName}
                 eligibility={eligibility}
                 profile={profile}
@@ -114,32 +105,14 @@ export default async function UserDashboardPage() {
       </section>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard
-          icon={WalletCards}
-          label="Solde disponible"
-          value={formatMinorMoney(
-            wallet?.availableBalanceMinor ?? 0,
-            wallet?.defaultCurrency ?? "TND",
-          )}
-        />
+        <MetricCard icon={WalletCards} label="Solde disponible" value={formatDisplayBalance(wallet, walletBalance)} />
         <MetricCard
           icon={Clock3}
           label="Solde en attente"
-          value={formatMinorMoney(
-            wallet?.pendingBalanceMinor ?? 0,
-            wallet?.defaultCurrency ?? "TND",
-          )}
+          value={formatMinorMoney(wallet?.pendingBalanceMinor ?? 0, wallet?.defaultCurrency ?? "TND")}
         />
-        <MetricCard
-          icon={FileCheck2}
-          label="KYC"
-          value={formatWalletEnum(profile.user.kycStatus)}
-        />
-        <MetricCard
-          icon={CreditCard}
-          label="Comptes"
-          value={String(wallet?.accounts.length ?? 0)}
-        />
+        <MetricCard icon={FileCheck2} label="KYC" value={formatWalletEnum(profile.user.kycStatus)} />
+        <MetricCard icon={CreditCard} label="Comptes" value={String(wallet?.accounts.length ?? 0)} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
@@ -149,9 +122,7 @@ export default async function UserDashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-3">
             {wallet?.accounts.length ? (
-              wallet.accounts.map((account) => (
-                <WalletAccountRow key={account.id} account={account} />
-              ))
+              wallet.accounts.map((account) => <WalletAccountRow key={account.id} account={account} />)
             ) : (
               <EmptyText text="Aucun compte wallet disponible." />
             )}
@@ -165,24 +136,12 @@ export default async function UserDashboardPage() {
           <CardContent className="grid gap-3">
             {transactions.length ? (
               transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="rounded-md border p-3 text-sm"
-                >
+                <div key={transaction.id} className="rounded-md border p-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">
-                      {formatWalletEnum(transaction.operationType)}
-                    </span>
-                    <span>
-                      {formatMinorMoney(
-                        transaction.amountMinor,
-                        wallet?.defaultCurrency ?? "TND",
-                      )}
-                    </span>
+                    <span className="font-medium">{formatWalletEnum(transaction.operationType)}</span>
+                    <span>{formatMinorMoney(transaction.amountMinor, wallet?.defaultCurrency ?? "TND")}</span>
                   </div>
-                  <p className="text-muted-foreground text-xs">
-                    {formatWalletEnum(transaction.status)}
-                  </p>
+                  <p className="text-muted-foreground text-xs">{formatWalletEnum(transaction.status)}</p>
                 </div>
               ))
             ) : (
@@ -197,34 +156,16 @@ export default async function UserDashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <CardTitle>Operations via agence</CardTitle>
-              <CardDescription>
-                Les operations cash seront executees par un agent autorise.
-              </CardDescription>
+              <CardDescription>Les operations cash seront executees par un agent autorise.</CardDescription>
             </div>
             <Badge variant="secondary">A venir</Badge>
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-4">
-          <OperationButton
-            icon={Landmark}
-            label="Cash-in en agence"
-            note="Disponible via agent apres KYC."
-          />
-          <OperationButton
-            icon={Landmark}
-            label="Cash-out en agence"
-            note="Autorisation OTP a venir."
-          />
-          <OperationButton
-            icon={CreditCard}
-            label="Transfert"
-            note="Bientot disponible."
-          />
-          <OperationButton
-            icon={CreditCard}
-            label="Paiement"
-            note="Bientot disponible."
-          />
+          <OperationButton icon={Landmark} label="Cash-in en agence" note="Disponible via agent apres KYC." />
+          <OperationButton icon={Landmark} label="Cash-out en agence" note="Autorisation OTP a venir." />
+          <OperationButton icon={CreditCard} label="Transfert" note="Bientot disponible." />
+          <OperationButton icon={CreditCard} label="Paiement" note="Bientot disponible." />
         </CardContent>
       </Card>
     </div>
@@ -232,11 +173,13 @@ export default async function UserDashboardPage() {
 }
 
 function WalletOverviewPanel({
+  balance,
   displayName,
   eligibility,
   profile,
   wallet,
 }: {
+  balance: WalletBalanceResponse | null;
   displayName: string;
   eligibility: CustomerWalletEligibilityResponse | null;
   profile: CurrentUserResponse;
@@ -244,6 +187,9 @@ function WalletOverviewPanel({
 }) {
   const eligibilityProgress = eligibilityScore(eligibility);
   const maskedWalletId = maskIdentifier(wallet.id);
+  const displayBalance = balance
+    ? formatAssetMinorMoney(balance.availableBalanceMinor, balance.currency, balance.asset)
+    : formatMinorMoney(wallet.availableBalanceMinor, wallet.defaultCurrency);
 
   return (
     <Card className="overflow-hidden border bg-background shadow-none">
@@ -253,10 +199,7 @@ function WalletOverviewPanel({
             <CardTitle>My Wallet</CardTitle>
             <CardDescription>{maskedWalletId}</CardDescription>
           </div>
-          <Badge
-            variant="outline"
-            className={walletStatusClassName(wallet.status)}
-          >
+          <Badge variant="outline" className={walletStatusClassName(wallet.status)}>
             {formatWalletEnum(wallet.status)}
           </Badge>
         </div>
@@ -275,21 +218,15 @@ function WalletOverviewPanel({
               </div>
 
               <div className="relative">
-                <p className="text-white/65 text-xs uppercase tracking-wider">
-                  Solde disponible
-                </p>
-                <p className="mt-1 font-semibold text-2xl tracking-tight sm:text-3xl">
-                  {formatMinorMoney(
-                    wallet.availableBalanceMinor,
-                    wallet.defaultCurrency,
-                  )}
-                </p>
+                <p className="text-white/65 text-xs uppercase tracking-wider">Solde disponible Formance</p>
+                <p className="mt-1 font-semibold text-2xl tracking-tight sm:text-3xl">{displayBalance}</p>
                 <p className="mt-1 text-white/65 text-xs">
-                  En attente:{" "}
-                  {formatMinorMoney(
-                    wallet.pendingBalanceMinor,
-                    wallet.defaultCurrency,
-                  )}
+                  {balance
+                    ? `${balance.asset} - ${balance.accountAddress}`
+                    : `Solde local - En attente: ${formatMinorMoney(
+                        wallet.pendingBalanceMinor,
+                        wallet.defaultCurrency,
+                      )}`}
                 </p>
               </div>
 
@@ -299,14 +236,9 @@ function WalletOverviewPanel({
                     {displayName}
                   </p>
                   <div className="flex gap-6">
-                    <CardMeta
-                      label="Niveau"
-                      value={`N${walletLevel(eligibility)}`}
-                    />
+                    <CardMeta label="Niveau" value={`N${walletLevel(eligibility)}`} />
                     <div>
-                      <p className="text-[10px] text-white/60 uppercase tracking-wider">
-                        KYC
-                      </p>
+                      <p className="text-[10px] text-white/60 uppercase tracking-wider">KYC</p>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span
                           className={
@@ -322,25 +254,17 @@ function WalletOverviewPanel({
                     </div>
                   </div>
                 </div>
-                <SimpleIcon
-                  icon={siMastercard}
-                  className="size-9 shrink-0 fill-white/80"
-                />
+                <SimpleIcon icon={siMastercard} className="size-9 shrink-0 fill-white/80" />
               </div>
             </div>
           </div>
 
           <div className="grid content-between gap-5">
             <div className="grid gap-2 text-sm">
-              <InfoLine
-                label="Email"
-                value={profile.user.email ?? "Non renseigne"}
-              />
-              <InfoLine
-                label="Telephone"
-                value={profile.user.phoneNumber ?? "Non renseigne"}
-              />
+              <InfoLine label="Email" value={profile.user.email ?? "Non renseigne"} />
+              <InfoLine label="Telephone" value={profile.user.phoneNumber ?? "Non renseigne"} />
               <InfoLine label="Devise" value={wallet.defaultCurrency} />
+              <InfoLine label="Source solde" value={balance ? "Formance Ledger" : "Local fallback"} />
               <InfoLine
                 label="Comptes internes"
                 value={`${wallet.accounts.length} ${wallet.accounts.length > 1 ? "comptes" : "compte"}`}
@@ -355,9 +279,7 @@ function WalletOverviewPanel({
                   <LockKeyhole className="size-4 text-muted-foreground" />
                   <span className="font-medium">Eligibilite wallet</span>
                 </div>
-                <span className="font-medium tabular-nums">
-                  {eligibilityProgress}%
-                </span>
+                <span className="font-medium tabular-nums">{eligibilityProgress}%</span>
               </div>
               <Progress value={eligibilityProgress} className="mt-3" />
             </div>
@@ -382,9 +304,7 @@ function WalletOverviewPanel({
 function CardMeta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-white/60 uppercase tracking-wider">
-        {label}
-      </p>
+      <p className="text-[10px] text-white/60 uppercase tracking-wider">{label}</p>
       <p className="font-mono text-white/80 text-xs">{value}</p>
     </div>
   );
@@ -408,9 +328,7 @@ function MissingWalletPanel() {
         </div>
         <div>
           <p className="font-medium">Wallet non cree</p>
-          <p className="text-muted-foreground text-sm">
-            Le wallet principal doit etre provisionne.
-          </p>
+          <p className="text-muted-foreground text-sm">Le wallet principal doit etre provisionne.</p>
         </div>
       </div>
       <ProvisionUserWalletButton />
@@ -418,11 +336,7 @@ function MissingWalletPanel() {
   );
 }
 
-function EligibilityRail({
-  eligibility,
-}: {
-  eligibility: CustomerWalletEligibilityResponse | null;
-}) {
+function EligibilityRail({ eligibility }: { eligibility: CustomerWalletEligibilityResponse | null }) {
   const items = [
     { checked: eligibility?.userActive ?? false, label: "Compte actif" },
     { checked: eligibility?.emailVerified ?? false, label: "Email verifie" },
@@ -440,9 +354,7 @@ function EligibilityRail({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="font-medium">Eligibilite transactions</p>
-          <p className="text-muted-foreground text-xs">
-            Lecture conformité du compte.
-          </p>
+          <p className="text-muted-foreground text-xs">Lecture conformité du compte.</p>
         </div>
         <Badge
           variant="outline"
@@ -465,11 +377,7 @@ function EligibilityRail({
                 : "flex items-center gap-2 rounded-md border bg-muted/25 p-2 text-sm"
             }
           >
-            {item.checked ? (
-              <CheckCircle2 className="size-4" />
-            ) : (
-              <XCircle className="size-4 text-amber-600" />
-            )}
+            {item.checked ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4 text-amber-600" />}
             <span>{item.label}</span>
           </div>
         ))}
@@ -488,11 +396,7 @@ function EligibilityRail({
   );
 }
 
-function WalletServicesPanel({
-  eligibility,
-}: {
-  eligibility: CustomerWalletEligibilityResponse | null;
-}) {
+function WalletServicesPanel({ eligibility }: { eligibility: CustomerWalletEligibilityResponse | null }) {
   const services = [
     { icon: QrCode, label: "Scan QR", ready: eligibility?.eligible ?? false },
     {
@@ -537,9 +441,7 @@ function WalletServicesPanel({
               >
                 <Icon className="size-5" />
               </span>
-              <span className="w-full truncate text-center">
-                {service.label}
-              </span>
+              <span className="w-full truncate text-center">{service.label}</span>
             </button>
           );
         })}
@@ -557,19 +459,12 @@ function WalletAccountRow({ account }: { account: WalletAccountResponse }) {
         </div>
         <div className="min-w-0">
           <p className="font-medium">{formatWalletEnum(account.accountType)}</p>
-          <p className="break-all text-muted-foreground text-xs">
-            {account.ledgerAccountAddress}
-          </p>
+          <p className="break-all text-muted-foreground text-xs">{account.ledgerAccountAddress}</p>
         </div>
       </div>
       <div className="text-left md:text-right">
-        <p className="font-semibold">
-          {formatMinorMoney(account.availableBalanceMinor, account.currency)}
-        </p>
-        <Badge
-          variant="outline"
-          className={walletStatusClassName(account.status)}
-        >
+        <p className="font-semibold">{formatMinorMoney(account.availableBalanceMinor, account.currency)}</p>
+        <Badge variant="outline" className={walletStatusClassName(account.status)}>
           {formatWalletEnum(account.status)}
         </Badge>
       </div>
@@ -611,19 +506,13 @@ function OperationButton({
   note: string;
 }) {
   return (
-    <Button
-      disabled
-      variant="outline"
-      className="h-auto justify-start gap-3 rounded-lg p-3 opacity-75"
-    >
+    <Button disabled variant="outline" className="h-auto justify-start gap-3 rounded-lg p-3 opacity-75">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
         <Icon className="size-4" />
       </span>
       <span className="grid text-left">
         <span>{label}</span>
-        <span className="font-normal text-muted-foreground text-xs">
-          {note}
-        </span>
+        <span className="font-normal text-muted-foreground text-xs">{note}</span>
       </span>
     </Button>
   );
@@ -631,8 +520,7 @@ function OperationButton({
 
 function eligibilityReasonLabel(reason: string) {
   const labels: Record<string, string> = {
-    compliance_case_active:
-      "Un dossier Compliance actif bloque les operations.",
+    compliance_case_active: "Un dossier Compliance actif bloque les operations.",
     email_not_verified: "Email non verifie.",
     kyc_not_verified: "KYC non valide.",
     mfa_not_enabled: "MFA non activee.",
@@ -643,9 +531,7 @@ function eligibilityReasonLabel(reason: string) {
   return labels[reason] ?? reason.replaceAll("_", " ");
 }
 
-function eligibilityScore(
-  eligibility: CustomerWalletEligibilityResponse | null,
-) {
+function eligibilityScore(eligibility: CustomerWalletEligibilityResponse | null) {
   if (!eligibility) {
     return 0;
   }
@@ -683,11 +569,7 @@ function maskIdentifier(value: string) {
 }
 
 function EmptyText({ text }: { text: string }) {
-  return (
-    <p className="rounded-md border border-dashed p-4 text-muted-foreground text-sm">
-      {text}
-    </p>
-  );
+  return <p className="rounded-md border border-dashed p-4 text-muted-foreground text-sm">{text}</p>;
 }
 
 async function safeGetWallet() {
@@ -711,10 +593,26 @@ async function safeGetTransactions() {
   }
 }
 
+async function safeGetBalance() {
+  try {
+    return await getCurrentCustomerWalletBalance();
+  } catch {
+    return null;
+  }
+}
+
 async function safeGetEligibility() {
   try {
     return await getCurrentCustomerWalletEligibility();
   } catch {
     return null;
   }
+}
+
+function formatDisplayBalance(wallet: WalletResponse | null, balance: WalletBalanceResponse | null) {
+  if (balance) {
+    return formatAssetMinorMoney(balance.availableBalanceMinor, balance.currency, balance.asset);
+  }
+
+  return formatMinorMoney(wallet?.availableBalanceMinor ?? 0, wallet?.defaultCurrency ?? "TND");
 }
