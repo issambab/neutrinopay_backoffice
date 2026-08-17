@@ -149,6 +149,17 @@ export async function listCurrentAgentCashOperations(params: CashOperationListPa
   return readApiResponse<PageResponse<CashOperationResponse>>(response, "Unable to load agent cash operations.");
 }
 
+export async function listCurrentAgentFloatTopups(params: AgentFloatTopupListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "q", params.q);
+  const response = await authenticatedBackendFetch(`/agent/float-topups?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<AgentFloatTopupResponse>>(
+    response,
+    "Unable to load current agent float top-ups.",
+  );
+}
+
 export async function getCashOperation(operationId: string) {
   const response = await authenticatedBackendFetch(`/cash-operations/${operationId}`);
   return readApiResponse<CashOperationResponse>(response, "Unable to load cash operation.");

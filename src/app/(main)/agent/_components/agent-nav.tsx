@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { BadgeCheck, Landmark, LayoutDashboard, LogOut, ReceiptText, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Landmark, LayoutDashboard, LogOut, ReceiptText, ShieldCheck, WalletCards } from "lucide-react";
 
 import LogoNeutrinoCar from "@/components/icon/logo-neutrino-car";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/agent/cash-in", icon: Landmark, label: "Cash-in" },
   { href: "/agent/cash-out", icon: ShieldCheck, label: "Cash-out", disabled: true },
   { href: "/agent/operations", icon: ReceiptText, label: "Operations" },
+  { href: "/agent/float-topups", icon: WalletCards, label: "Alimentations float" },
 ] satisfies AgentNavItem[];
 
 export function AgentNav() {

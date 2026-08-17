@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   Clock3,
   HandCoins,
+  Landmark,
   ReceiptText,
   ShieldCheck,
   WalletCards,
@@ -23,8 +24,9 @@ import {
   getCurrentAgentFloatBalance,
   getCurrentAgentProfile,
   listCurrentAgentCashOperations,
+  listCurrentAgentFloatTopups,
 } from "@/lib/cash/cash.server";
-import type { CashOperationResponse } from "@/lib/cash/cash.types";
+import type { AgentFloatTopupResponse, CashOperationResponse } from "@/lib/cash/cash.types";
 import {
   cashStatusClassName,
   formatCashOperationType,
@@ -34,16 +36,20 @@ import {
 
 export default async function AgentDashboardPage() {
   try {
-    const [profile, floatBalance, earningsBalance, recentOperations] = await Promise.all([
+    const [profile, floatBalance, earningsBalance, recentOperations, recentTopups] = await Promise.all([
       getCurrentAgentProfile(),
       getCurrentAgentFloatBalance(),
       getCurrentAgentEarningsBalance(),
       listCurrentAgentCashOperations({ page: 0, size: 6, sort: "createdAt,desc" }),
+      safeListCurrentAgentFloatTopups(),
     ]);
     const postedCount = recentOperations.content.filter((operation) => operation.status === "posted").length;
     const pendingCount = recentOperations.content.filter((operation) =>
       ["otp_pending", "prepared"].includes(operation.status),
     ).length;
+    const postedTopupTotal = recentTopups.content
+      .filter((topup) => topup.status === "posted")
+      .reduce((total, topup) => total + topup.amountMinor, 0);
 
     return (
       <div className="grid gap-6">
@@ -126,7 +132,7 @@ export default async function AgentDashboardPage() {
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <StatusBlock
                   icon={CheckCircle2}
                   label="Postees recentes"
@@ -151,31 +157,60 @@ export default async function AgentDashboardPage() {
                   value={formatMinorAmount(earningsBalance.balanceMinor, earningsBalance.currency)}
                   helper={earningsBalance.accountAddress}
                 />
+                <StatusBlock
+                  icon={Landmark}
+                  label="Top-ups postes"
+                  value={formatMinorAmount(postedTopupTotal, "TND")}
+                  helper={`${recentTopups.totalElements} demande(s) float`}
+                />
               </div>
             </div>
           </div>
         </section>
 
-        <Card id="operations" className="scroll-mt-6">
-          <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <ReceiptText className="size-5" />
-                Operations recentes
-              </CardTitle>
-              <CardDescription>Les derniers Cash-in/Cash-out rattaches a votre caisse.</CardDescription>
-            </div>
-            <Button asChild variant="outline" size="sm" className="w-full md:w-fit">
-              <Link href="/agent/operations">
-                Voir l'historique
-                <ArrowUpRight className="size-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <RecentOperationsList operations={recentOperations.content} />
-          </CardContent>
-        </Card>
+        <div className="grid gap-4">
+          <Card id="operations" className="scroll-mt-6">
+            <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ReceiptText className="size-5" />
+                  Operations recentes
+                </CardTitle>
+                <CardDescription>Les derniers Cash-in/Cash-out rattaches a votre caisse.</CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm" className="w-full md:w-fit">
+                <Link href="/agent/operations">
+                  Voir l'historique
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <RecentOperationsList operations={recentOperations.content} />
+            </CardContent>
+          </Card>
+
+          <Card id="float-topups" className="scroll-mt-6">
+            <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Landmark className="size-5" />
+                  Alimentations float
+                </CardTitle>
+                <CardDescription>Demandes recentes de recharge rattachees a votre caisse.</CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm" className="w-full md:w-fit">
+                <Link href="/agent/float-topups">
+                  Voir historique
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <RecentTopupsList topups={recentTopups.content} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   } catch (error) {
@@ -239,6 +274,43 @@ function RecentOperationsList({ operations }: { operations: CashOperationRespons
   );
 }
 
+function RecentTopupsList({ topups }: { topups: AgentFloatTopupResponse[] }) {
+  if (topups.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed p-6 text-center text-muted-foreground text-sm">
+        Aucune alimentation float rattachee a cet agent pour le moment.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-2">
+      {topups.map((topup) => (
+        <div key={topup.id} className="rounded-md border bg-background p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm">{formatMinorAmount(topup.amountMinor, topup.currency)}</p>
+              <p className="mt-1 truncate text-muted-foreground text-xs">
+                {topup.proofReference ?? topup.ledgerTransactionId ?? topup.id}
+              </p>
+            </div>
+            <Badge className={topupStatusClassName(topup.status)} variant="outline">
+              {formatTopupStatus(topup.status)}
+            </Badge>
+          </div>
+
+          <div className="mt-3 grid gap-1 border-t pt-3 text-xs">
+            <TopupFact label="Creee" value={formatDateTime(topup.createdAt)} />
+            {topup.postedAt ? <TopupFact label="Postee" value={formatDateTime(topup.postedAt)} /> : null}
+            {topup.ledgerTransactionId ? <TopupFact label="Ledger" value={topup.ledgerTransactionId} mono /> : null}
+            {topup.failureReason ? <TopupFact label="Erreur" value={topup.failureReason} /> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function OperationAmountSummary({ operation }: { operation: CashOperationResponse }) {
   const breakdown = cashBreakdown(operation);
 
@@ -270,6 +342,46 @@ function OperationAmountSummary({ operation }: { operation: CashOperationRespons
   );
 }
 
+function TopupFact({ label, mono, value }: { label: string; mono?: boolean; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className={mono ? "break-all text-right font-mono" : "text-right"}>{value}</span>
+    </div>
+  );
+}
+
+function formatTopupStatus(status: AgentFloatTopupResponse["status"]) {
+  const labels: Record<AgentFloatTopupResponse["status"], string> = {
+    failed: "Echec",
+    pending: "En attente",
+    posted: "Postee",
+    rejected: "Rejetee",
+  };
+
+  return labels[status] ?? status;
+}
+
+function topupStatusClassName(status: AgentFloatTopupResponse["status"]) {
+  if (status === "posted") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+  if (status === "pending") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+  if (status === "failed") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-background/70 p-3">
@@ -291,6 +403,23 @@ function cashBreakdown(operation: CashOperationResponse) {
     customerNetMinor,
     grossMinor,
   };
+}
+
+async function safeListCurrentAgentFloatTopups() {
+  try {
+    return await listCurrentAgentFloatTopups({ page: 0, size: 5, sort: "createdAt,desc" });
+  } catch {
+    return {
+      content: [],
+      empty: true,
+      first: true,
+      last: true,
+      page: 0,
+      size: 5,
+      totalElements: 0,
+      totalPages: 0,
+    };
+  }
 }
 
 function MetricCard({

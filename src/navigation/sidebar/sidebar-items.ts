@@ -89,7 +89,7 @@ export const sidebarItems: NavGroup[] = [
         icon: ReceiptText,
         subItems: [
           { title: "Cash-in / Cash-out", url: "/dashboard/cash-operations" },
-          { title: "Float agents", url: "/dashboard/agent-float-topups" },
+          { title: "Alimentations float", url: "/dashboard/agent-float-topups" },
         ],
       },
       {

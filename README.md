@@ -73,6 +73,7 @@ Endpoints backend appeles :
 - `GET /api/v1/agent/me`
 - `GET /api/v1/agent/float-balance`
 - `GET /api/v1/agent/earnings-balance`
+- `GET /api/v1/agent/float-topups`
 - `GET /api/v1/agent/customers/search`
 - `GET /api/v1/agent/cash-operations?operationType=cash_in`
 - `POST /api/v1/agent/cash-in`
@@ -91,6 +92,8 @@ Workflow UI :
 - afficher les operations recentes scopees a l'agent connecte.
 - afficher la liste paginee des operations Cash-in uniquement.
 - afficher les earnings agent en `TND` depuis le compte Formance `agents:{agentCode}:earnings`.
+- afficher les alimentations float recentes de l'agent connecte depuis `GET /api/v1/agent/float-topups`.
+- exposer la page agent `agent/float-topups` pour l'historique pagine, filtrable par statut et recherche.
 - afficher les KPI `Net clients` et `Brut encaisse` uniquement a partir des Cash-in `posted`.
 - ne pas afficher de bloc `Revenu plateforme` dans l'espace agent ; ce revenu reste une lecture finance/admin.
 - dans `Operations recentes`, afficher le net client, le brut recu et la commission agent en `TND` quand le breakdown est disponible.

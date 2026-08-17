@@ -13,6 +13,7 @@ export function formatCashStatus(status?: string | null) {
     pending: "En attente",
     posted: "Postee",
     prepared: "Preparee",
+    rejected: "Rejetee",
     suspended: "Suspendu",
     otp_pending: "OTP en attente",
   };
@@ -37,6 +38,7 @@ export function cashStatusClassName(status?: LifecycleStatus | string | null) {
     case "archived":
     case "cancelled":
     case "expired":
+    case "rejected":
       return "border-slate-200 bg-slate-50 text-slate-600";
     default:
       return "border-muted bg-muted/40 text-muted-foreground";
