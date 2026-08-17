@@ -7,6 +7,7 @@ import type {
   AgentFloatTopupListParams,
   AgentFloatTopupResponse,
   AgentLedgerBalanceResponse,
+  AgentPhysicalCashBalanceResponse,
   ApproveAgentFloatTopupRequest,
   CashAgentContractResponse,
   CashCustomerLookupResponse,
@@ -114,6 +115,14 @@ export async function getCurrentAgentEarningsBalance() {
   return readApiResponse<AgentLedgerBalanceResponse>(response, "Unable to load cash agent earnings balance.");
 }
 
+export async function getCurrentAgentPhysicalCashBalance() {
+  const response = await authenticatedBackendFetch("/agent/physical-cash-balance");
+  return readApiResponse<AgentPhysicalCashBalanceResponse>(
+    response,
+    "Unable to load cash agent physical cash balance.",
+  );
+}
+
 export async function searchAgentCashCustomer(query: string) {
   const searchParams = new URLSearchParams({ q: query });
   const response = await authenticatedBackendFetch(`/agent/customers/search?${searchParams.toString()}`);
@@ -123,6 +132,11 @@ export async function searchAgentCashCustomer(query: string) {
 export async function startAgentCashIn(payload: StartCashOperationRequest) {
   const response = await authenticatedBackendFetch("/agent/cash-in", jsonRequest("POST", payload));
   return readApiResponse<CashOperationResponse>(response, "Unable to start cash-in.");
+}
+
+export async function startAgentCashOut(payload: StartCashOperationRequest) {
+  const response = await authenticatedBackendFetch("/agent/cash-out", jsonRequest("POST", payload));
+  return readApiResponse<CashOperationResponse>(response, "Unable to start cash-out.");
 }
 
 export async function confirmAgentCashOperation(operationId: string, payload: ConfirmCashOperationRequest) {

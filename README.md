@@ -18,18 +18,18 @@ Endpoints backend appeles :
 
 Conventions :
 
-- Le solde vient de Formance, pas de la table wallet locale.
+- Le solde vient de Ledger, pas de la table wallet locale.
 - Le compte cible est `users:{customerRef}:available`.
 - L'asset MVP est `TND/2`.
-- La reconciliation compare le solde Formance avec le solde projete depuis `transaction_views`.
+- La reconciliation compare le solde Ledger avec le solde projete depuis `transaction_views`.
 
 Interface branchee :
 
-- La page `user/dashboard` affiche le solde disponible client depuis Formance via `GET /api/v1/customer/wallet/balance`.
-- Si Formance est indisponible, le dashboard garde un fallback local pour ne pas bloquer l'affichage, mais la source est marquee `Local fallback`.
+- La page `user/dashboard` affiche le solde disponible client depuis Ledger via `GET /api/v1/customer/wallet/balance`.
+- Si Ledger est indisponible, le dashboard garde un fallback local pour ne pas bloquer l'affichage, mais la source est marquee `Local fallback`.
 - La page `dashboard/users/[userId]` affiche une carte `Solde ledger` pour les clients avec wallet.
-- La carte affiche le solde Formance, la projection locale, l'ecart et le statut `reconcilie` / `ecart detecte`.
-- Les montants Formance sont formates selon la precision de l'asset (`TND/2` = deux decimales).
+- La carte affiche le solde Ledger, la projection locale, l'ecart et le statut `reconcilie` / `ecart detecte`.
+- Les montants Ledger sont formates selon la precision de l'asset (`TND/2` = deux decimales).
 - La page affiche aussi `Historique wallet` avec les 10 derniers mouvements `transaction_views` postes.
 - Chaque mouvement montre direction, statut, type operation, montant signe, asset, reference ledger et date.
 - Chaque ligne d'historique propose un panneau `Detail mouvement wallet` avec reference ledger, ids techniques et metadata cash/ledger.
@@ -59,12 +59,13 @@ Interface :
 
 ## Agent Cash-in UI
 
-La page `agent/cash-in` expose le workflow Cash-in agent testable avec Formance Docker. Le dashboard agent reste un cockpit de suivi et ne contient plus le formulaire Cash-in.
+Les pages `agent/cash-in` et `agent/cash-out` exposent les workflows agent testables avec Ledger Docker. Le dashboard agent reste un cockpit de suivi et ne contient plus les formulaires operationnels.
 
 Routes proxy disponibles :
 
 - `GET /api/agent/customers/search?q=...`
 - `POST /api/agent/cash-in`
+- `POST /api/agent/cash-out`
 - `PATCH /api/agent/cash-operations/[operationId]/confirm`
 - `POST /api/agent/cash-operations/[operationId]/execute`
 
@@ -73,31 +74,37 @@ Endpoints backend appeles :
 - `GET /api/v1/agent/me`
 - `GET /api/v1/agent/float-balance`
 - `GET /api/v1/agent/earnings-balance`
+- `GET /api/v1/agent/physical-cash-balance`
 - `GET /api/v1/agent/float-topups`
 - `GET /api/v1/agent/customers/search`
 - `GET /api/v1/agent/cash-operations?operationType=cash_in`
+- `GET /api/v1/agent/cash-operations?operationType=cash_out`
 - `POST /api/v1/agent/cash-in`
+- `POST /api/v1/agent/cash-out`
 - `PATCH /api/v1/agent/cash-operations/{operationId}/confirm`
 - `POST /api/v1/agent/cash-operations/{operationId}/execute`
 
 Workflow UI :
 
-- afficher l'agence, le contrat agent et le float reel Formance sur la page dediee.
+- afficher l'agence, le contrat agent et le float reel Ledger sur la page dediee.
 - afficher la commission contrat et la part plateforme configuree.
 - rechercher le client et afficher son eligibilite wallet/KYC.
 - saisir le montant brut encaisse en `TND`.
+- pour Cash-out, saisir le cash remis au client ; l'UI affiche commission, part agent, part plateforme et total debite wallet avant finalisation.
 - creer l'operation en statut `otp_pending`.
 - confirmer l'OTP client pour passer l'operation a `prepared`.
-- poster l'operation dans Formance via l'endpoint `execute`.
+- poster l'operation dans Ledger via l'endpoint `execute`.
+- apres un posting Cash-in ou Cash-out reussi, recharger automatiquement le tableau de la page et les metriques agent.
 - afficher les operations recentes scopees a l'agent connecte.
-- afficher la liste paginee des operations Cash-in uniquement.
-- afficher les earnings agent en `TND` depuis le compte Formance `agents:{agentCode}:earnings`.
+- afficher les listes paginees des operations Cash-in et Cash-out dans leurs pages dediees.
+- afficher les earnings agent en `TND` depuis le compte Ledger `agents:{agentCode}:earnings`.
+- afficher le cash physique agent calcule depuis les Cash-in postes moins les Cash-out postes. Les top-ups float restent affiches comme historique separe.
 - afficher les alimentations float recentes de l'agent connecte depuis `GET /api/v1/agent/float-topups`.
 - exposer la page agent `agent/float-topups` pour l'historique pagine, filtrable par statut et recherche.
-- afficher les KPI `Net clients` et `Brut encaisse` uniquement a partir des Cash-in `posted`.
+- afficher le KPI `Net clients` uniquement a partir des Cash-in `posted`.
 - ne pas afficher de bloc `Revenu plateforme` dans l'espace agent ; ce revenu reste une lecture finance/admin.
 - dans `Operations recentes`, afficher le net client, le brut recu et la commission agent en `TND` quand le breakdown est disponible.
-- afficher le solde float reel Formance du compte `agents:{agentRef}:float`.
+- afficher le solde float reel Ledger du compte `agents:{agentRef}:float`.
 
 Le code OTP n'est jamais affiche par l'UI. En environnement dev, il doit etre recupere depuis le canal de livraison OTP configure localement.
 
@@ -176,7 +183,7 @@ Interface :
 
 - creation d'une demande a partir d'une agence active et d'un contrat agent actif.
 - listing filtre par statut, agence et recherche preuve/ledger.
-- panneau detail avec comptes ledger, preuve, dates, statut et erreur Formance.
-- approval avec `idempotencyKey`, posting Formance `treasury:cash:vault -> agents:{agentCode}:float`.
-- rejection motivee sans appel Formance.
-- asset backend/Formance conserve : `TND/2`.
+- panneau detail avec comptes ledger, preuve, dates, statut et erreur Ledger.
+- approval avec `idempotencyKey`, posting Ledger `treasury:cash:vault -> agents:{agentCode}:float`.
+- rejection motivee sans appel Ledger.
+- asset backend/Ledger conserve : `TND/2`.

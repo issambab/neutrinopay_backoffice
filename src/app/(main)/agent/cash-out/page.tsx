@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-import { Banknote, CheckCircle2, Clock3, HandCoins, Landmark, WalletCards } from "lucide-react";
+import { Banknote, BanknoteArrowDown, CheckCircle2, Clock3, HandCoins, ShieldCheck, WalletCards } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,10 +14,10 @@ import {
 import type { CashOperationResponse } from "@/lib/cash/cash.types";
 import { cashStatusClassName, formatCashStatus, formatMinorAmount } from "@/lib/cash/cash-format";
 
-import { AgentCashInPanel } from "../dashboard/_components/agent-cash-in-panel";
 import { AgentOperationsTable } from "../operations/_components/agent-operations-table";
+import { AgentCashOutPanel } from "./_components/agent-cash-out-panel";
 
-type AgentCashInPageProps = {
+type AgentCashOutPageProps = {
   searchParams?: Promise<{
     page?: string;
     size?: string;
@@ -27,21 +27,21 @@ type AgentCashInPageProps = {
 
 const PAGE_SIZE = 10;
 
-export default async function AgentCashInPage({ searchParams }: AgentCashInPageProps) {
+export default async function AgentCashOutPage({ searchParams }: AgentCashOutPageProps) {
   const params = await searchParams;
   const page = toPageNumber(params?.page);
   const pageSize = toPageSize(params?.size);
   const sort = toCashOperationSort(params?.sort);
 
   try {
-    const [profile, floatBalance, earningsBalance, physicalCashBalance, cashInOperations] = await Promise.all([
+    const [profile, floatBalance, earningsBalance, physicalCashBalance, cashOutOperations] = await Promise.all([
       getCurrentAgentProfile(),
       getCurrentAgentFloatBalance(),
       getCurrentAgentEarningsBalance(),
       getCurrentAgentPhysicalCashBalance(),
-      listCurrentAgentCashOperations({ operationType: "cash_in", page, size: pageSize, sort }),
+      listCurrentAgentCashOperations({ operationType: "cash_out", page, size: pageSize, sort }),
     ]);
-    const metrics = summarizeCashInPage(cashInOperations.content);
+    const metrics = summarizeCashOutPage(cashOutOperations.content);
 
     return (
       <div className="flex flex-col gap-5 md:gap-6">
@@ -49,16 +49,17 @@ export default async function AgentCashInPage({ searchParams }: AgentCashInPageP
           <div className="grid gap-5 border-b bg-muted/20 p-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:p-6">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                  Cash-in agent
+                <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">
+                  Cash-out agent
                 </Badge>
                 <Badge className={cashStatusClassName(profile.status)} variant="outline">
                   Contrat {formatCashStatus(profile.status)}
                 </Badge>
               </div>
-              <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">Encaissement client</h1>
+              <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">Retrait client</h1>
               <p className="mt-1 max-w-2xl text-muted-foreground text-sm">
-                Saisissez le montant brut recu en cash, confirmez l'OTP client, puis postez l'operation dans Ledger.
+                Saisissez le cash a remettre, affichez la commission et faites confirmer le client par OTP avant le
+                posting Ledger.
               </p>
             </div>
 
@@ -77,14 +78,20 @@ export default async function AgentCashInPage({ searchParams }: AgentCashInPageP
           </div>
 
           <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:p-5">
-            <AgentCashInPanel />
+            <AgentCashOutPanel contract={profile} />
 
             <div className="grid content-start gap-3">
               <MetricCard
+                icon={BanknoteArrowDown}
+                label="Cash remis"
+                value={formatMinorAmount(metrics.cashToCustomerMinor)}
+                helper="Cash-out postes sur cette page"
+              />
+              <MetricCard
                 icon={WalletCards}
-                label="Net clients"
-                value={formatMinorAmount(metrics.customerNetMinor)}
-                helper="Cash-in postes credites aux wallets clients"
+                label="Debit wallets"
+                value={formatMinorAmount(metrics.totalDebitMinor)}
+                helper="Montant cash + commissions"
               />
               <MetricCard
                 icon={HandCoins}
@@ -96,7 +103,7 @@ export default async function AgentCashInPage({ searchParams }: AgentCashInPageP
                 icon={Banknote}
                 label="Cash physique"
                 value={formatMinorAmount(physicalCashBalance.physicalCashBalanceMinor, physicalCashBalance.currency)}
-                helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} - Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)}`}
+                helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} · Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)}`}
               />
             </div>
           </div>
@@ -106,13 +113,13 @@ export default async function AgentCashInPage({ searchParams }: AgentCashInPageP
           <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Landmark className="size-5" />
-                Operations Cash-in
+                <ShieldCheck className="size-5" />
+                Operations Cash-out
               </CardTitle>
-              <CardDescription>Journal pagine des encaissements clients traites par votre caisse.</CardDescription>
+              <CardDescription>Journal pagine des retraits clients traites par votre caisse.</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{cashInOperations.totalElements} Cash-in</Badge>
+              <Badge variant="outline">{cashOutOperations.totalElements} Cash-out</Badge>
               <Badge variant="outline">
                 <CheckCircle2 className="size-3.5" />
                 {metrics.postedCount} postees
@@ -124,7 +131,7 @@ export default async function AgentCashInPage({ searchParams }: AgentCashInPageP
             </div>
           </CardHeader>
           <CardContent>
-            <AgentOperationsTable operations={cashInOperations} pageSize={pageSize} sort={sort} />
+            <AgentOperationsTable operations={cashOutOperations} pageSize={pageSize} sort={sort} />
           </CardContent>
         </Card>
       </div>
@@ -133,12 +140,12 @@ export default async function AgentCashInPage({ searchParams }: AgentCashInPageP
     return (
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="font-semibold text-2xl tracking-tight">Cash-in agent</h1>
-          <p className="text-muted-foreground text-sm">Impossible de charger l'espace Cash-in.</p>
+          <h1 className="font-semibold text-2xl tracking-tight">Cash-out agent</h1>
+          <p className="text-muted-foreground text-sm">Impossible de charger l'espace Cash-out.</p>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Cash-in indisponible</CardTitle>
+            <CardTitle>Cash-out indisponible</CardTitle>
           </CardHeader>
           <CardContent className="text-muted-foreground text-sm">
             {error instanceof Error ? error.message : "Le backend cash ne repond pas."}
@@ -174,41 +181,41 @@ function MetricCard({
   );
 }
 
-function summarizeCashInPage(operations: CashOperationResponse[]) {
+function summarizeCashOutPage(operations: CashOperationResponse[]) {
   return operations.reduce(
     (totals, operation) => {
       if (operation.status !== "posted") {
         return {
-          grossMinor: totals.grossMinor,
-          customerNetMinor: totals.customerNetMinor,
+          cashToCustomerMinor: totals.cashToCustomerMinor,
           postedCount: totals.postedCount,
+          totalDebitMinor: totals.totalDebitMinor,
           waitingCount: totals.waitingCount + (["otp_pending", "prepared"].includes(operation.status) ? 1 : 0),
         };
       }
-      const breakdown = cashBreakdown(operation);
+      const breakdown = cashOutBreakdown(operation);
       return {
-        grossMinor: totals.grossMinor + breakdown.grossMinor,
-        customerNetMinor: totals.customerNetMinor + breakdown.customerNetMinor,
+        cashToCustomerMinor: totals.cashToCustomerMinor + breakdown.cashToCustomerMinor,
         postedCount: totals.postedCount + 1,
+        totalDebitMinor: totals.totalDebitMinor + breakdown.totalDebitMinor,
         waitingCount: totals.waitingCount,
       };
     },
     {
-      grossMinor: 0,
-      customerNetMinor: 0,
+      cashToCustomerMinor: 0,
       postedCount: 0,
+      totalDebitMinor: 0,
       waitingCount: 0,
     },
   );
 }
 
-function cashBreakdown(operation: CashOperationResponse) {
-  const grossMinor = operation.grossAmountMinor ?? operation.amountMinor;
-  const customerNetMinor = operation.customerNetAmountMinor ?? operation.amountMinor;
+function cashOutBreakdown(operation: CashOperationResponse) {
+  const cashToCustomerMinor = operation.grossAmountMinor ?? operation.amountMinor;
+  const commissionMinor = operation.commissionAmountMinor ?? 0;
 
   return {
-    customerNetMinor,
-    grossMinor,
+    cashToCustomerMinor,
+    totalDebitMinor: cashToCustomerMinor + commissionMinor,
   };
 }
 

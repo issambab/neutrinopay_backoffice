@@ -74,6 +74,17 @@ export type AgentLedgerBalanceResponse = {
   balanceMinor: number;
 };
 
+export type AgentPhysicalCashBalanceResponse = {
+  tenantId: string;
+  agentUserId: string;
+  agentContractId: string;
+  currency: string;
+  cashInPostedMinor: number;
+  cashOutPostedMinor: number;
+  topupPostedMinor: number;
+  physicalCashBalanceMinor: number;
+};
+
 export type CashOperationResponse = {
   id: string;
   tenantId: string;

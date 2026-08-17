@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertCircle,
   ArrowUpRight,
+  Banknote,
   CalendarClock,
   CheckCircle2,
   CircleDollarSign,
@@ -22,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   getCurrentAgentEarningsBalance,
   getCurrentAgentFloatBalance,
+  getCurrentAgentPhysicalCashBalance,
   getCurrentAgentProfile,
   listCurrentAgentCashOperations,
   listCurrentAgentFloatTopups,
@@ -36,13 +38,15 @@ import {
 
 export default async function AgentDashboardPage() {
   try {
-    const [profile, floatBalance, earningsBalance, recentOperations, recentTopups] = await Promise.all([
-      getCurrentAgentProfile(),
-      getCurrentAgentFloatBalance(),
-      getCurrentAgentEarningsBalance(),
-      listCurrentAgentCashOperations({ page: 0, size: 6, sort: "createdAt,desc" }),
-      safeListCurrentAgentFloatTopups(),
-    ]);
+    const [profile, floatBalance, earningsBalance, physicalCashBalance, recentOperations, recentTopups] =
+      await Promise.all([
+        getCurrentAgentProfile(),
+        getCurrentAgentFloatBalance(),
+        getCurrentAgentEarningsBalance(),
+        getCurrentAgentPhysicalCashBalance(),
+        listCurrentAgentCashOperations({ page: 0, size: 6, sort: "createdAt,desc" }),
+        safeListCurrentAgentFloatTopups(),
+      ]);
     const postedCount = recentOperations.content.filter((operation) => operation.status === "posted").length;
     const pendingCount = recentOperations.content.filter((operation) =>
       ["otp_pending", "prepared"].includes(operation.status),
@@ -132,12 +136,12 @@ export default async function AgentDashboardPage() {
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                 <StatusBlock
                   icon={CheckCircle2}
                   label="Postees recentes"
                   value={postedCount.toString()}
-                  helper="Mouvements deja confirmes dans Formance"
+                  helper="Mouvements deja confirmes dans Ledger"
                 />
                 <StatusBlock
                   icon={Clock3}
@@ -156,6 +160,12 @@ export default async function AgentDashboardPage() {
                   label="Earnings agent"
                   value={formatMinorAmount(earningsBalance.balanceMinor, earningsBalance.currency)}
                   helper={earningsBalance.accountAddress}
+                />
+                <StatusBlock
+                  icon={Banknote}
+                  label="Cash physique"
+                  value={formatMinorAmount(physicalCashBalance.physicalCashBalanceMinor, physicalCashBalance.currency)}
+                  helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} · Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)}`}
                 />
                 <StatusBlock
                   icon={Landmark}

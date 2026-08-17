@@ -17,13 +17,13 @@ type AgentNavItem = {
   label: string;
 };
 
-const NAV_ITEMS = [
+const NAV_ITEMS: AgentNavItem[] = [
   { href: "/agent/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/agent/cash-in", icon: Landmark, label: "Cash-in" },
-  { href: "/agent/cash-out", icon: ShieldCheck, label: "Cash-out", disabled: true },
+  { href: "/agent/cash-out", icon: ShieldCheck, label: "Cash-out" },
   { href: "/agent/operations", icon: ReceiptText, label: "Operations" },
   { href: "/agent/float-topups", icon: WalletCards, label: "Alimentations float" },
-] satisfies AgentNavItem[];
+];
 
 export function AgentNav() {
   const pathname = usePathname();

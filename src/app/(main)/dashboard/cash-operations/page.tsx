@@ -51,7 +51,7 @@ export default async function CashOperationsPage({ searchParams }: CashOperation
           <div>
             <h1 className="font-semibold text-2xl tracking-tight">Operations cash</h1>
             <p className="text-muted-foreground text-sm">
-              Supervision support des Cash-in/Cash-out agents, de l'OTP au posting Formance.
+              Supervision support des Cash-in/Cash-out agents, de l'OTP au posting Ledger.
             </p>
           </div>
           <Badge variant="outline" className="w-fit">

@@ -218,7 +218,7 @@ function WalletOverviewPanel({
               </div>
 
               <div className="relative">
-                <p className="text-white/65 text-xs uppercase tracking-wider">Solde disponible Formance</p>
+                <p className="text-white/65 text-xs uppercase tracking-wider">Solde disponible Ledger</p>
                 <p className="mt-1 font-semibold text-2xl tracking-tight sm:text-3xl">{displayBalance}</p>
                 <p className="mt-1 text-white/65 text-xs">
                   {balance
@@ -264,7 +264,7 @@ function WalletOverviewPanel({
               <InfoLine label="Email" value={profile.user.email ?? "Non renseigne"} />
               <InfoLine label="Telephone" value={profile.user.phoneNumber ?? "Non renseigne"} />
               <InfoLine label="Devise" value={wallet.defaultCurrency} />
-              <InfoLine label="Source solde" value={balance ? "Formance Ledger" : "Local fallback"} />
+              <InfoLine label="Source solde" value={balance ? "Ledger" : "Local fallback"} />
               <InfoLine
                 label="Comptes internes"
                 value={`${wallet.accounts.length} ${wallet.accounts.length > 1 ? "comptes" : "compte"}`}

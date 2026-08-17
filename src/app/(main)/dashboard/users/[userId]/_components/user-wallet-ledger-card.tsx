@@ -33,7 +33,7 @@ export function UserWalletLedgerCard({ balance, reconciliation, wallet }: UserWa
             </span>
             <div>
               <CardTitle>Solde ledger</CardTitle>
-              <p className="text-muted-foreground text-xs">Source Formance et projection locale transaction_views</p>
+              <p className="text-muted-foreground text-xs">Source Ledger et projection locale transaction_views</p>
             </div>
           </div>
           <Badge
@@ -53,7 +53,7 @@ export function UserWalletLedgerCard({ balance, reconciliation, wallet }: UserWa
         <div className="grid gap-3 lg:grid-cols-[1.1fr_1fr_1fr]">
           <LedgerMetric
             icon={Landmark}
-            label="Solde Formance"
+            label="Solde Ledger"
             value={
               balance
                 ? formatAssetMinorMoney(balance.availableBalanceMinor, balance.currency, balance.asset)
@@ -91,12 +91,12 @@ export function UserWalletLedgerCard({ balance, reconciliation, wallet }: UserWa
         <div className="rounded-md border bg-muted/10 p-3">
           <div className="grid gap-3 text-sm md:grid-cols-3">
             <LedgerFact label="Asset" value={asset} />
-            <LedgerFact label="Source" value={balance?.source ?? "formance"} />
+            <LedgerFact label="Source" value={formatBalanceSource(balance?.source)} />
             <LedgerFact label="Lecture" value={balance ? formatDateTime(balance.asOf) : "Indisponible"} />
           </div>
           <Separator className="my-3" />
           <div className="text-muted-foreground text-xs">
-            Le backoffice affiche le meme solde Formance que celui utilise pour bloquer un Cash-out insuffisant.
+            Le backoffice affiche le meme solde Ledger que celui utilise pour bloquer un Cash-out insuffisant.
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export function UserWalletLedgerCard({ balance, reconciliation, wallet }: UserWa
             <AlertTriangle className="size-4" />
             <AlertTitle>Difference ledger detectee</AlertTitle>
             <AlertDescription>
-              Le solde Formance et la projection locale ne correspondent pas. Verifier les dernieres operations cash
+              Le solde Ledger et la projection locale ne correspondent pas. Verifier les dernieres operations cash
               postees et les projections transaction_views avant toute action support.
             </AlertDescription>
           </Alert>
@@ -161,6 +161,14 @@ function LedgerFact({ label, value }: { label: string; value: string }) {
       <span className="break-all font-medium text-sm">{value}</span>
     </div>
   );
+}
+
+function formatBalanceSource(source?: string | null) {
+  if (!source) {
+    return "Ledger";
+  }
+
+  return source.toLowerCase() === "formance" ? "Ledger" : source;
 }
 
 function formatDateTime(value: string) {

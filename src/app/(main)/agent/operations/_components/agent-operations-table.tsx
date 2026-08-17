@@ -178,15 +178,18 @@ function AgentOperationRow({ operation }: { operation: CashOperationResponse }) 
             </>
           ) : (
             <>
-              <span>{formatMinorAmount(operation.amountMinor, operation.currency)}</span>
-              <span className="text-muted-foreground text-xs">Montant remis au client</span>
+              <span>{formatMinorAmount(breakdown.grossMinor, operation.currency)}</span>
+              <span className="text-muted-foreground text-xs">
+                Cash remis Â· debit total{" "}
+                {formatMinorAmount(breakdown.grossMinor + breakdown.commissionMinor, operation.currency)}
+              </span>
             </>
           )}
         </div>
       </TableCell>
       <TableCell>
         <div className="grid gap-1">
-          {operation.operationType === "cash_in" && operation.commissionAmountMinor ? (
+          {operation.commissionAmountMinor ? (
             <>
               <span className="text-muted-foreground text-xs">
                 Total {formatMinorAmount(breakdown.commissionMinor, operation.currency)}
@@ -197,7 +200,7 @@ function AgentOperationRow({ operation }: { operation: CashOperationResponse }) 
               </span>
             </>
           ) : (
-            <span className="text-muted-foreground text-xs">Aucune commission cash-in</span>
+            <span className="text-muted-foreground text-xs">Aucune commission</span>
           )}
         </div>
       </TableCell>

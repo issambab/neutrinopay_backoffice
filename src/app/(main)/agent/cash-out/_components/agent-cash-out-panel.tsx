@@ -13,7 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import type { CashCustomerLookupResponse, CashOperationResponse } from "@/lib/cash/cash.types";
+import type {
+  CashAgentContractResponse,
+  CashCustomerLookupResponse,
+  CashOperationResponse,
+} from "@/lib/cash/cash.types";
 import { cashStatusClassName, formatCashStatus, formatMinorAmount } from "@/lib/cash/cash-format";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +25,19 @@ type ApiPayload<T> = {
   message?: string;
 } & T;
 
-export function AgentCashInPanel() {
+type AgentCashOutPanelProps = {
+  contract: CashAgentContractResponse;
+};
+
+type CashOutBreakdown = {
+  agentCommissionMinor: number;
+  cashToCustomerMinor: number;
+  commissionMinor: number;
+  platformCommissionMinor: number;
+  totalDebitMinor: number;
+};
+
+export function AgentCashOutPanel({ contract }: AgentCashOutPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [customerLookup, setCustomerLookup] = useState("");
@@ -32,6 +48,8 @@ export function AgentCashInPanel() {
   const [error, setError] = useState<string | null>(null);
 
   const amountMinor = useMemo(() => parseTndAmountToMinor(amount), [amount]);
+  const estimate = useMemo(() => estimateCashOutBreakdown(amountMinor, contract), [amountMinor, contract]);
+  const operationBreakdown = operation ? cashOutBreakdown(operation) : null;
   const canStart = Boolean(customer?.eligibility.eligible && amountMinor && amountMinor > 0);
   const canConfirm = Boolean(operation?.status === "otp_pending" && operation.otpChallengeId && otpCode.trim());
   const canExecute = operation?.status === "prepared";
@@ -66,13 +84,13 @@ export function AgentCashInPanel() {
     });
   }
 
-  function startCashIn() {
+  function startCashOut() {
     run(async () => {
       if (!amountMinor || amountMinor <= 0) {
-        throw new Error("Le montant Cash-in doit etre superieur a zero.");
+        throw new Error("Le montant Cash-out doit etre superieur a zero.");
       }
 
-      const response = await fetch("/api/agent/cash-in", {
+      const response = await fetch("/api/agent/cash-out", {
         body: JSON.stringify({
           amountMinor,
           currency: "TND",
@@ -90,7 +108,7 @@ export function AgentCashInPanel() {
         operation?: CashOperationResponse;
       }>;
       if (!response.ok || !payload.operation) {
-        throw new Error(payload.message ?? "Creation Cash-in impossible.");
+        throw new Error(payload.message ?? "Creation Cash-out impossible.");
       }
 
       setOperation(payload.operation);
@@ -126,7 +144,7 @@ export function AgentCashInPanel() {
     });
   }
 
-  function executeCashIn() {
+  function executeCashOut() {
     run(async () => {
       if (!operation) {
         throw new Error("Aucune operation a poster.");
@@ -134,7 +152,7 @@ export function AgentCashInPanel() {
 
       const response = await fetch(`/api/agent/cash-operations/${operation.id}/execute`, {
         body: JSON.stringify({
-          idempotencyKey: `backoffice-agent-${operation.id}-${clientIdempotencySuffix()}`,
+          idempotencyKey: `backoffice-agent-cashout-${operation.id}-${clientIdempotencySuffix()}`,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -157,16 +175,16 @@ export function AgentCashInPanel() {
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-2">
           <WalletCards className="size-5" />
-          Cash-in client
+          Cash-out client
         </CardTitle>
-        <CardDescription>Recherche client, OTP, puis posting Ledger.</CardDescription>
+        <CardDescription>Retrait client avec OTP, controle solde wallet, puis posting Ledger.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="cash-customer-lookup">Client</Label>
+          <Label htmlFor="cash-out-customer-lookup">Client</Label>
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Input
-              id="cash-customer-lookup"
+              id="cash-out-customer-lookup"
               onChange={(event) => setCustomerLookup(event.target.value)}
               placeholder="Email, telephone ou reference"
               value={customerLookup}
@@ -183,24 +201,23 @@ export function AgentCashInPanel() {
         <Separator />
 
         <div className="grid gap-2">
-          <Label htmlFor="cash-in-amount">Montant TND</Label>
+          <Label htmlFor="cash-out-amount">Cash remis au client</Label>
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Input
-              id="cash-in-amount"
+              id="cash-out-amount"
               inputMode="decimal"
               onChange={(event) => setAmount(event.target.value)}
               placeholder="Ex: 25.000"
               value={amount}
             />
-            <Button disabled={isPending || !canStart} onClick={startCashIn} type="button">
+            <Button disabled={isPending || !canStart} onClick={startCashOut} type="button">
               {isPending ? <Loader2 className="animate-spin" /> : <Send />}
               Initier
             </Button>
           </div>
-          <p className="text-muted-foreground text-xs">
-            Montant prepare: {amountMinor ? formatMinorAmount(amountMinor) : formatMinorAmount(0)}
-          </p>
         </div>
+
+        <BreakdownCard breakdown={operationBreakdown ?? estimate} source={operation ? "backend" : "estimation"} />
 
         {operation ? (
           <div className="grid gap-3 rounded-lg border bg-muted/20 p-3">
@@ -226,7 +243,7 @@ export function AgentCashInPanel() {
                 Confirmer
               </Button>
             </div>
-            <Button disabled={isPending || !canExecute} onClick={executeCashIn} type="button">
+            <Button disabled={isPending || !canExecute} onClick={executeCashOut} type="button">
               {isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
               Poster dans Ledger
             </Button>
@@ -260,7 +277,7 @@ function CustomerEligibilityCard({ customer }: { customer: CashCustomerLookupRes
             {customer.fullName ?? customer.email ?? customer.externalReference}
           </p>
           <p className="truncate text-muted-foreground text-xs">
-            {[customer.email, customer.phoneNumber, customer.externalReference].filter(Boolean).join(" · ")}
+            {[customer.email, customer.phoneNumber, customer.externalReference].filter(Boolean).join(" Â· ")}
           </p>
         </div>
         <Badge
@@ -283,6 +300,73 @@ function CustomerEligibilityCard({ customer }: { customer: CashCustomerLookupRes
       ) : null}
     </div>
   );
+}
+
+function BreakdownCard({ breakdown, source }: { breakdown: CashOutBreakdown; source: "backend" | "estimation" }) {
+  return (
+    <div className="grid gap-3 rounded-lg border bg-muted/20 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-medium text-sm">Apercu retrait</p>
+        <Badge variant="outline">{source === "backend" ? "Calcule backend" : "Estimation contrat"}</Badge>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <BreakdownItem label="Cash remis client" value={formatMinorAmount(breakdown.cashToCustomerMinor)} />
+        <BreakdownItem label="Commission totale" value={formatMinorAmount(breakdown.commissionMinor)} />
+        <BreakdownItem label="Earnings agent" value={formatMinorAmount(breakdown.agentCommissionMinor)} />
+        <BreakdownItem label="Revenu plateforme" value={formatMinorAmount(breakdown.platformCommissionMinor)} />
+      </div>
+      <div className="rounded-md border bg-background p-3">
+        <p className="text-muted-foreground text-xs">Total debite du wallet client</p>
+        <p className="font-semibold text-xl">{formatMinorAmount(breakdown.totalDebitMinor)}</p>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border bg-background p-3">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="font-medium text-sm">{value}</p>
+    </div>
+  );
+}
+
+function estimateCashOutBreakdown(amountMinor: number | null, contract: CashAgentContractResponse): CashOutBreakdown {
+  const cashToCustomerMinor = amountMinor ?? 0;
+  const commissionMinor = commissionMinorFromContract(cashToCustomerMinor, contract);
+  const platformCommissionMinor = Math.round((commissionMinor * contract.platformCommissionSharePercent) / 100);
+  const agentCommissionMinor = commissionMinor - platformCommissionMinor;
+
+  return {
+    agentCommissionMinor,
+    cashToCustomerMinor,
+    commissionMinor,
+    platformCommissionMinor,
+    totalDebitMinor: cashToCustomerMinor + commissionMinor,
+  };
+}
+
+function cashOutBreakdown(operation: CashOperationResponse): CashOutBreakdown {
+  const cashToCustomerMinor = operation.grossAmountMinor ?? operation.amountMinor;
+  const commissionMinor = operation.commissionAmountMinor ?? 0;
+  return {
+    agentCommissionMinor: operation.agentCommissionAmountMinor ?? commissionMinor,
+    cashToCustomerMinor,
+    commissionMinor,
+    platformCommissionMinor: operation.platformCommissionAmountMinor ?? 0,
+    totalDebitMinor: cashToCustomerMinor + commissionMinor,
+  };
+}
+
+function commissionMinorFromContract(amountMinor: number, contract: CashAgentContractResponse) {
+  if (!amountMinor || contract.commissionValue <= 0) {
+    return 0;
+  }
+  if (contract.commissionMode === "percent") {
+    return Math.round((amountMinor * contract.commissionValue) / 100);
+  }
+  return Math.round(contract.commissionValue);
 }
 
 function clientIdempotencySuffix() {
