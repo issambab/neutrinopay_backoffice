@@ -69,6 +69,25 @@ Interface :
 - table avec type, client, agence, agent, statut, montant, ledger transaction et dates.
 - lien direct vers le detail utilisateur/wallet client pour investiguer l'historique et la reconciliation.
 
+## Agents Cash Admin
+
+La page `dashboard/agents` liste les agents cash du tenant avec leurs contrats agence.
+
+Sources backend :
+
+- `GET /api/v1/iam/users?type=cash_agent`
+- `GET /api/v1/agencies`
+- `GET /api/v1/agencies/{agencyId}/agents`
+
+Interface :
+
+- filtres par recherche, statut agent et statut contrat.
+- pagination par URL avec `page`, `size` et `sort`.
+- affichage du statut KYC, de l'agence rattachee, de la commission agent, de la part plateforme et des limites.
+- lien vers `dashboard/agencies` pour modifier l'affectation, le contrat ou les commissions.
+- bloc `Activation reseau cash` par agent avec les controles `agent actif`, `agence active` et `contrat actif`.
+- actions rapides `Activer agent`, `Activer agence` et `Activer contrat`; la ligne devient `Pret Cash-in/Cash-out` uniquement quand les trois statuts sont actifs.
+
 ## Wallets Admin
 
 Le groupe super admin `Wallets` expose quatre vues :

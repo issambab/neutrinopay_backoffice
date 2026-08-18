@@ -1,5 +1,6 @@
 import {
   Banknote,
+  Bell,
   Building2,
   ChartNoAxesCombined,
   FileWarning,
@@ -13,7 +14,6 @@ import {
   Store,
   Users,
   WalletCards,
-  Bell,
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -95,6 +95,10 @@ export const sidebarItems: NavGroup[] = [
         title: "Agences",
         url: "/dashboard/agencies",
         icon: Landmark,
+        subItems: [
+          { title: "Agences", url: "/dashboard/agencies" },
+          { title: "Agents cash", url: "/dashboard/agents" },
+        ],
       },
       {
         title: "Operations cash & float",
