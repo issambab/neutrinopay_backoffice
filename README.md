@@ -36,6 +36,18 @@ Interface branchee :
 - Quand les metadata contiennent `cash_operation_id`, le panneau charge le detail Cash-in/Cash-out source via la route proxy cash.
 - Le drawer affiche le statut operationnel, l'agence, le client, l'agent, les timestamps et la transaction ledger sans exposer de code OTP.
 
+## Workspace Sidebars
+
+Les espaces `agent`, `merchant` et `user` utilisent le meme composant de sidebar que l'admin via `Sidebar`, `SidebarProvider` et `SidebarMenuButton`.
+
+Regles UI :
+
+- garder le meme style de navigation, collapse et mobile drawer que le dashboard admin.
+- le sidebar super admin expose le groupe `Wallets` avec `All Wallets`, `Customer Wallets`, `Agent Wallets` et `Merchant Wallets`.
+- afficher un bloc de solde uniquement dans le sidebar client.
+- le bloc client affiche le solde reel Ledger via `GET /api/v1/customer/wallet/balance`.
+- agent et marchand n'affichent pas de bloc solde dans le sidebar ; leurs soldes restent dans les pages metier dediees.
+
 ## Cash Operations Monitoring
 
 La page `dashboard/cash-operations` supervise les operations Cash-in/Cash-out agents.
@@ -56,6 +68,27 @@ Interface :
 - cartes de synthese sur la page courante.
 - table avec type, client, agence, agent, statut, montant, ledger transaction et dates.
 - lien direct vers le detail utilisateur/wallet client pour investiguer l'historique et la reconciliation.
+
+## Wallets Admin
+
+Le groupe super admin `Wallets` expose quatre vues :
+
+- `dashboard/wallets` : tous les wallets du tenant.
+- `dashboard/wallets/customers` : wallets clients (`ownerType=user`).
+- `dashboard/wallets/agents` : wallets agents cash (`ownerType=cash_agent`).
+- `dashboard/wallets/merchants` : wallets marchands (`ownerType=business`).
+
+Chaque page affiche :
+
+- KPI page : total, actifs, balance Ledger disponible sur la page, owners distincts.
+- filtres `ownerId` et `status`.
+- pagination, taille page et tri.
+- table avec wallet, nom/email owner, type, statut, balance Ledger reelle et compte ledger principal.
+- la balance Ledger par ligne est completee cote serveur avec `GET /api/v1/wallets/{walletId}/balance`, le meme endpoint que le detail utilisateur.
+- si la lecture Ledger d'une ligne echoue, la table garde le wallet visible avec `Indisponible`.
+- lien detail vers `dashboard/wallets/{walletId}` pour ouvrir le wallet, sa balance Ledger, sa reconciliation et ses mouvements.
+- le detail wallet pagine l'historique avec `txPage`, `txSize` et `txSort`.
+- depuis le detail wallet client, un bouton permet aussi d'ouvrir `dashboard/users/{ownerId}`.
 
 ## Agent Cash-in UI
 

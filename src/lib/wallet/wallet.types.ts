@@ -55,12 +55,18 @@ export type WalletResponse = {
   tenantId: string;
   ownerType: OwnerType;
   ownerId: string;
+  ownerDisplayName?: string | null;
+  ownerEmail?: string | null;
   walletType: WalletType;
   status: LifecycleStatus;
   defaultCurrency: string;
   label?: string | null;
   availableBalanceMinor: number;
   pendingBalanceMinor: number;
+  ledgerAvailableBalanceMinor?: number | null;
+  ledgerAsset?: string | null;
+  ledgerAccountAddress?: string | null;
+  ledgerBalanceStatus?: string | null;
   accounts: WalletAccountResponse[];
   metadata?: Record<string, unknown> | null;
   createdAt: string;

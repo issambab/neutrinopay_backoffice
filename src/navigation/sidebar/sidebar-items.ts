@@ -12,6 +12,8 @@ import {
   ShoppingBag,
   Store,
   Users,
+  WalletCards,
+  Bell,
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -55,6 +57,17 @@ export const sidebarItems: NavGroup[] = [
         icon: Users,
       },
       {
+        title: "Wallets",
+        url: "/dashboard/wallets",
+        icon: WalletCards,
+        subItems: [
+          { title: "All Wallets", url: "/dashboard/wallets" },
+          { title: "Customer Wallets", url: "/dashboard/wallets/customers" },
+          { title: "Agent Wallets", url: "/dashboard/wallets/agents" },
+          { title: "Merchant Wallets", url: "/dashboard/wallets/merchants" },
+        ],
+      },
+      {
         title: "Roles & permissions",
         url: "/dashboard/roles",
         icon: ShieldCheck,
@@ -84,13 +97,25 @@ export const sidebarItems: NavGroup[] = [
         icon: Landmark,
       },
       {
-        title: "Operations cash",
+        title: "Operations cash & float",
         url: "/dashboard/cash-operations",
         icon: ReceiptText,
         subItems: [
           { title: "Cash-in / Cash-out", url: "/dashboard/cash-operations" },
-          { title: "Alimentations float", url: "/dashboard/agent-float-topups" },
+          {
+            title: "Alimentations float",
+            url: "/dashboard/agent-float-topups",
+          },
+          {
+            title: "Settlements",
+            url: "/dashboard/agent-settlements",
+          },
         ],
+      },
+      {
+        title: "Settlements",
+        url: "/dashboard/agent-settlements",
+        icon: Banknote,
       },
       {
         title: "Paiement",
@@ -102,6 +127,18 @@ export const sidebarItems: NavGroup[] = [
           { title: "Opérations automatisées", url: "/dashboard/coming-soon" },
         ],
       },
+
+      {
+        title: "Notifications",
+        url: "/dashboard/coming-soon",
+        icon: Bell,
+        subItems: [
+          { title: "Notifications", url: "/dashboard/coming-soon" },
+          { title: "SMS", url: "/dashboard/coming-soon" },
+          { title: "Email", url: "/dashboard/coming-soon" },
+        ],
+      },
+
       {
         title: "Statistiques",
         url: "/dashboard/analytics",
@@ -116,6 +153,10 @@ export const sidebarItems: NavGroup[] = [
         title: "Paramètres",
         url: "/dashboard/coming-soon",
         icon: Settings,
+        subItems: [
+          { title: "General", url: "/dashboard/coming-soon" },
+          { title: "Fees & Commissions", url: "/dashboard/coming-soon" },
+        ],
       },
     ],
   } /*
