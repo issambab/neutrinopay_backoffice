@@ -54,6 +54,15 @@ export function formatCashOperationType(type?: string | null) {
   return labels[type ?? ""] ?? type ?? "-";
 }
 
+export function formatAgentSettlementDirection(direction?: string | null) {
+  const labels: Record<string, string> = {
+    cash_to_float: "Cash to Float",
+    float_to_cash: "Float to Cash",
+  };
+
+  return labels[direction ?? ""] ?? direction ?? "-";
+}
+
 export function formatMinorAmount(value?: number | null, currency = "TND") {
   return new Intl.NumberFormat("fr-TN", {
     currency,

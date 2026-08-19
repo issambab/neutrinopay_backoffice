@@ -27,10 +27,12 @@ import {
   getCurrentAgentProfile,
   listCurrentAgentCashOperations,
   listCurrentAgentFloatTopups,
+  listCurrentAgentSettlements,
 } from "@/lib/cash/cash.server";
-import type { AgentFloatTopupResponse, CashOperationResponse } from "@/lib/cash/cash.types";
+import type { AgentFloatTopupResponse, AgentSettlementResponse, CashOperationResponse } from "@/lib/cash/cash.types";
 import {
   cashStatusClassName,
+  formatAgentSettlementDirection,
   formatCashOperationType,
   formatCashStatus,
   formatMinorAmount,
@@ -38,15 +40,23 @@ import {
 
 export default async function AgentDashboardPage() {
   try {
-    const [profile, floatBalance, earningsBalance, physicalCashBalance, recentOperations, recentTopups] =
-      await Promise.all([
-        getCurrentAgentProfile(),
-        getCurrentAgentFloatBalance(),
-        getCurrentAgentEarningsBalance(),
-        getCurrentAgentPhysicalCashBalance(),
-        listCurrentAgentCashOperations({ page: 0, size: 6, sort: "createdAt,desc" }),
-        safeListCurrentAgentFloatTopups(),
-      ]);
+    const [
+      profile,
+      floatBalance,
+      earningsBalance,
+      physicalCashBalance,
+      recentOperations,
+      recentTopups,
+      recentSettlements,
+    ] = await Promise.all([
+      getCurrentAgentProfile(),
+      getCurrentAgentFloatBalance(),
+      getCurrentAgentEarningsBalance(),
+      getCurrentAgentPhysicalCashBalance(),
+      listCurrentAgentCashOperations({ page: 0, size: 6, sort: "createdAt,desc" }),
+      safeListCurrentAgentFloatTopups(),
+      safeListCurrentAgentSettlements(),
+    ]);
     const postedCount = recentOperations.content.filter((operation) => operation.status === "posted").length;
     const pendingCount = recentOperations.content.filter((operation) =>
       ["otp_pending", "prepared"].includes(operation.status),
@@ -165,7 +175,7 @@ export default async function AgentDashboardPage() {
                   icon={Banknote}
                   label="Cash physique"
                   value={formatMinorAmount(physicalCashBalance.physicalCashBalanceMinor, physicalCashBalance.currency)}
-                  helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} · Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)}`}
+                  helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} · Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)} · Cash->Float ${formatMinorAmount(physicalCashBalance.cashToFloatPostedMinor, physicalCashBalance.currency)} · Float->Cash ${formatMinorAmount(physicalCashBalance.floatToCashPostedMinor, physicalCashBalance.currency)}`}
                 />
                 <StatusBlock
                   icon={Landmark}
@@ -218,6 +228,27 @@ export default async function AgentDashboardPage() {
             </CardHeader>
             <CardContent>
               <RecentTopupsList topups={recentTopups.content} />
+            </CardContent>
+          </Card>
+
+          <Card id="settlements" className="scroll-mt-6">
+            <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Banknote className="size-5" />
+                  Settlements recents
+                </CardTitle>
+                <CardDescription>Mouvements Cash to Float et Float to Cash valides par le backoffice.</CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm" className="w-full md:w-fit">
+                <Link href="/agent/settlements">
+                  Voir historique
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <RecentSettlementsList settlements={recentSettlements.content} />
             </CardContent>
           </Card>
         </div>
@@ -314,6 +345,51 @@ function RecentTopupsList({ topups }: { topups: AgentFloatTopupResponse[] }) {
             {topup.postedAt ? <TopupFact label="Postee" value={formatDateTime(topup.postedAt)} /> : null}
             {topup.ledgerTransactionId ? <TopupFact label="Ledger" value={topup.ledgerTransactionId} mono /> : null}
             {topup.failureReason ? <TopupFact label="Erreur" value={topup.failureReason} /> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RecentSettlementsList({ settlements }: { settlements: AgentSettlementResponse[] }) {
+  if (settlements.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed p-6 text-center text-muted-foreground text-sm">
+        Aucun settlement rattache a cet agent pour le moment.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-2">
+      {settlements.map((settlement) => (
+        <div key={settlement.id} className="rounded-md border bg-background p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{formatAgentSettlementDirection(settlement.direction)}</Badge>
+                <p className="font-semibold text-sm">
+                  {formatMinorAmount(settlement.amountMinor, settlement.currency)}
+                </p>
+              </div>
+              <p className="mt-1 truncate text-muted-foreground text-xs">
+                {settlement.proofReference ?? settlement.ledgerTransactionId ?? settlement.id}
+              </p>
+            </div>
+            <Badge className={cashStatusClassName(settlement.status)} variant="outline">
+              {formatCashStatus(settlement.status)}
+            </Badge>
+          </div>
+
+          <div className="mt-3 grid gap-1 border-t pt-3 text-xs">
+            <TopupFact label="Cree" value={formatDateTime(settlement.createdAt)} />
+            {settlement.postedAt ? <TopupFact label="Poste" value={formatDateTime(settlement.postedAt)} /> : null}
+            {settlement.ledgerTransactionId ? (
+              <TopupFact label="Ledger" value={settlement.ledgerTransactionId} mono />
+            ) : null}
+            {settlement.failureReason ? <TopupFact label="Erreur" value={settlement.failureReason} /> : null}
+            {settlement.rejectionReason ? <TopupFact label="Rejet" value={settlement.rejectionReason} /> : null}
           </div>
         </div>
       ))}
@@ -418,6 +494,23 @@ function cashBreakdown(operation: CashOperationResponse) {
 async function safeListCurrentAgentFloatTopups() {
   try {
     return await listCurrentAgentFloatTopups({ page: 0, size: 5, sort: "createdAt,desc" });
+  } catch {
+    return {
+      content: [],
+      empty: true,
+      first: true,
+      last: true,
+      page: 0,
+      size: 5,
+      totalElements: 0,
+      totalPages: 0,
+    };
+  }
+}
+
+async function safeListCurrentAgentSettlements() {
+  try {
+    return await listCurrentAgentSettlements({ page: 0, size: 5, sort: "createdAt,desc" });
   } catch {
     return {
       content: [],

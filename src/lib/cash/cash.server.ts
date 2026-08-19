@@ -8,7 +8,10 @@ import type {
   AgentFloatTopupResponse,
   AgentLedgerBalanceResponse,
   AgentPhysicalCashBalanceResponse,
+  AgentSettlementListParams,
+  AgentSettlementResponse,
   ApproveAgentFloatTopupRequest,
+  ApproveAgentSettlementRequest,
   CashAgentContractResponse,
   CashCustomerLookupResponse,
   CashOperationListParams,
@@ -16,10 +19,12 @@ import type {
   ConfirmCashOperationRequest,
   CreateAgencyRequest,
   CreateAgentFloatTopupRequest,
+  CreateAgentSettlementRequest,
   CreateCashAgentContractRequest,
   ExecuteCashOperationRequest,
   PageResponse,
   RejectAgentFloatTopupRequest,
+  RejectAgentSettlementRequest,
   StartCashOperationRequest,
   UpdateAgencyRequest,
   UpdateAgencyStatusRequest,
@@ -174,6 +179,15 @@ export async function listCurrentAgentFloatTopups(params: AgentFloatTopupListPar
   );
 }
 
+export async function listCurrentAgentSettlements(params: AgentSettlementListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "direction", params.direction);
+  appendIfPresent(searchParams, "q", params.q);
+  const response = await authenticatedBackendFetch(`/agent/settlements?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<AgentSettlementResponse>>(response, "Unable to load current agent settlements.");
+}
+
 export async function getCashOperation(operationId: string) {
   const response = await authenticatedBackendFetch(`/cash-operations/${operationId}`);
   return readApiResponse<CashOperationResponse>(response, "Unable to load cash operation.");
@@ -224,6 +238,44 @@ export async function rejectAgentFloatTopup(topupId: string, payload: RejectAgen
     jsonRequest("POST", payload),
   );
   return readApiResponse<AgentFloatTopupResponse>(response, "Unable to reject agent float top-up.");
+}
+
+export async function createAgentSettlement(payload: CreateAgentSettlementRequest) {
+  const response = await authenticatedBackendFetch("/agent-settlements", jsonRequest("POST", payload));
+  return readApiResponse<AgentSettlementResponse>(response, "Unable to create agent settlement.");
+}
+
+export async function listAgentSettlements(params: AgentSettlementListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "direction", params.direction);
+  appendIfPresent(searchParams, "agencyId", params.agencyId);
+  appendIfPresent(searchParams, "agentUserId", params.agentUserId);
+  appendIfPresent(searchParams, "q", params.q);
+
+  const response = await authenticatedBackendFetch(`/agent-settlements?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<AgentSettlementResponse>>(response, "Unable to load agent settlements.");
+}
+
+export async function getAgentSettlement(settlementId: string) {
+  const response = await authenticatedBackendFetch(`/agent-settlements/${settlementId}`);
+  return readApiResponse<AgentSettlementResponse>(response, "Unable to load agent settlement.");
+}
+
+export async function approveAgentSettlement(settlementId: string, payload: ApproveAgentSettlementRequest) {
+  const response = await authenticatedBackendFetch(
+    `/agent-settlements/${settlementId}/approve`,
+    jsonRequest("POST", payload),
+  );
+  return readApiResponse<AgentSettlementResponse>(response, "Unable to approve agent settlement.");
+}
+
+export async function rejectAgentSettlement(settlementId: string, payload: RejectAgentSettlementRequest) {
+  const response = await authenticatedBackendFetch(
+    `/agent-settlements/${settlementId}/reject`,
+    jsonRequest("POST", payload),
+  );
+  return readApiResponse<AgentSettlementResponse>(response, "Unable to reject agent settlement.");
 }
 
 function paginationParams({ page = 0, size = 20, sort = "createdAt,desc" }: ListParams) {

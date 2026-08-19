@@ -60,15 +60,11 @@ export function UserWalletCard({ wallet }: UserWalletCardProps) {
       <CardContent className="grid gap-4">
         {wallet ? (
           <>
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-3">
               <Info
                 label="Statut"
                 value={formatWalletEnum(wallet.status)}
                 badgeClassName={walletStatusClassName(wallet.status)}
-              />
-              <Info
-                label="Solde disponible"
-                value={formatMinorMoney(wallet.availableBalanceMinor, wallet.defaultCurrency)}
               />
               <Info
                 label="Solde en attente"

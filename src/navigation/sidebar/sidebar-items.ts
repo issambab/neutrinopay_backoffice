@@ -60,12 +60,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Wallets",
         url: "/dashboard/wallets",
         icon: WalletCards,
-        subItems: [
+        /* subItems: [
           { title: "All Wallets", url: "/dashboard/wallets" },
           { title: "Customer Wallets", url: "/dashboard/wallets/customers" },
           { title: "Agent Wallets", url: "/dashboard/wallets/agents" },
           { title: "Merchant Wallets", url: "/dashboard/wallets/merchants" },
-        ],
+        ],*/
       },
       {
         title: "Roles & permissions",
@@ -101,25 +101,17 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Operations cash & float",
+        title: "Transactions",
         url: "/dashboard/cash-operations",
         icon: ReceiptText,
         subItems: [
           { title: "Cash-in / Cash-out", url: "/dashboard/cash-operations" },
+          { title: "Settlements agents", url: "/dashboard/agent-settlements" },
           {
             title: "Alimentations float",
             url: "/dashboard/agent-float-topups",
           },
-          {
-            title: "Settlements",
-            url: "/dashboard/agent-settlements",
-          },
         ],
-      },
-      {
-        title: "Settlements",
-        url: "/dashboard/agent-settlements",
-        icon: Banknote,
       },
       {
         title: "Paiement",

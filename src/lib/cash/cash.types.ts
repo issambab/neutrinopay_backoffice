@@ -82,6 +82,8 @@ export type AgentPhysicalCashBalanceResponse = {
   cashInPostedMinor: number;
   cashOutPostedMinor: number;
   topupPostedMinor: number;
+  cashToFloatPostedMinor: number;
+  floatToCashPostedMinor: number;
   physicalCashBalanceMinor: number;
 };
 
@@ -269,4 +271,65 @@ export type AgentFloatTopupListParams = {
   size?: number;
   sort?: string;
   status?: AgentFloatTopupStatus | string;
+};
+
+export type AgentSettlementDirection = "cash_to_float" | "float_to_cash";
+
+export type AgentSettlementStatus = "pending" | "posted" | "rejected" | "failed";
+
+export type AgentSettlementResponse = {
+  id: string;
+  tenantId: string;
+  agencyId: string;
+  agencyCode: string;
+  agentContractId: string;
+  agentUserId: string;
+  agentName?: string | null;
+  direction: AgentSettlementDirection;
+  amountMinor: number;
+  currency: string;
+  sourceAccount: string;
+  destinationAccount: string;
+  status: AgentSettlementStatus;
+  proofReference?: string | null;
+  reason?: string | null;
+  rejectionReason?: string | null;
+  idempotencyKey?: string | null;
+  ledgerTransactionId?: string | null;
+  postedAt?: string | null;
+  failedAt?: string | null;
+  rejectedAt?: string | null;
+  failureReason?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt?: string | null;
+};
+
+export type CreateAgentSettlementRequest = {
+  agentContractId: string;
+  direction: AgentSettlementDirection;
+  amountMinor: number;
+  currency: "TND";
+  proofReference?: string | null;
+  reason?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type ApproveAgentSettlementRequest = {
+  idempotencyKey: string;
+};
+
+export type RejectAgentSettlementRequest = {
+  reason: string;
+};
+
+export type AgentSettlementListParams = {
+  agencyId?: string;
+  agentUserId?: string;
+  direction?: AgentSettlementDirection | string;
+  page?: number;
+  q?: string;
+  size?: number;
+  sort?: string;
+  status?: AgentSettlementStatus | string;
 };

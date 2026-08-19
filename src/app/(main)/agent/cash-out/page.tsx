@@ -103,7 +103,7 @@ export default async function AgentCashOutPage({ searchParams }: AgentCashOutPag
                 icon={Banknote}
                 label="Cash physique"
                 value={formatMinorAmount(physicalCashBalance.physicalCashBalanceMinor, physicalCashBalance.currency)}
-                helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} · Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)}`}
+                helper={`In ${formatMinorAmount(physicalCashBalance.cashInPostedMinor, physicalCashBalance.currency)} · Out ${formatMinorAmount(physicalCashBalance.cashOutPostedMinor, physicalCashBalance.currency)} · Cash->Float ${formatMinorAmount(physicalCashBalance.cashToFloatPostedMinor, physicalCashBalance.currency)} · Float->Cash ${formatMinorAmount(physicalCashBalance.floatToCashPostedMinor, physicalCashBalance.currency)}`}
               />
             </div>
           </div>

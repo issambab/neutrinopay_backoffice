@@ -1,6 +1,6 @@
 "use client";
 
-import { Landmark, LayoutDashboard, ReceiptText, ShieldCheck, WalletCards } from "lucide-react";
+import { Banknote, Landmark, LayoutDashboard, ReceiptText, ShieldCheck, WalletCards } from "lucide-react";
 
 import { WorkspaceSidebar } from "@/app/(main)/_components/workspace-sidebar";
 
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/agent/cash-out", icon: ShieldCheck, label: "Cash-out" },
   { href: "/agent/operations", icon: ReceiptText, label: "Operations" },
   { href: "/agent/float-topups", icon: WalletCards, label: "Alimentations float" },
+  { href: "/agent/settlements", icon: Banknote, label: "Settlements" },
 ];
 
 export function AgentNav({ userLabel }: AgentNavProps) {
