@@ -11,7 +11,7 @@ export function formatCashStatus(status?: string | null) {
     expired: "Expiree",
     failed: "Echec",
     pending: "En attente",
-    posted: "Postee",
+    posted: "Réussie",
     prepared: "Preparee",
     rejected: "Rejetee",
     suspended: "Suspendu",

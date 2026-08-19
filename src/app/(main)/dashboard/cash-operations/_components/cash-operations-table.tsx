@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
+  ArrowDownLeft,
   ArrowUpDown,
+  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -22,6 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { CashOperationResponse, PageResponse } from "@/lib/cash/cash.types";
 import {
@@ -283,14 +287,187 @@ function CashOperationRow({ operation }: { operation: CashOperationResponse }) {
       </TableCell>
       <TableCell className="text-right text-muted-foreground text-xs">{formatDateTime(operation.createdAt)}</TableCell>
       <TableCell className="text-right">
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/dashboard/users/${operation.customerUserId}`}>
-            <Eye />
-            Voir
-          </Link>
-        </Button>
+        <CashOperationDetailSheet operation={operation} />
       </TableCell>
     </TableRow>
+  );
+}
+
+function CashOperationDetailSheet({ operation }: { operation: CashOperationResponse }) {
+  const metadataEntries = Object.entries(operation.metadata ?? {});
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <Eye />
+          Voir
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Detail transaction cash</SheetTitle>
+          <SheetDescription>{operation.ledgerTransactionId ?? operation.id}</SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-4 px-4 pb-4">
+          <div className="grid gap-3 rounded-md border bg-muted/10 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CashOperationDirectionBadge operationType={operation.operationType} status={operation.status} />
+              <span className="font-semibold text-lg">{formatSignedAmount(operation)}</span>
+            </div>
+            <Separator />
+            <div className="grid gap-3 md:grid-cols-2">
+              <DetailFact label="Operation" value={formatCashOperationType(operation.operationType)} />
+              <DetailFact label="Statut" value={formatCashStatus(operation.status)} />
+              <DetailFact label="Operation cash" value={operation.id} mono />
+              <DetailFact label="Ledger transaction" value={operation.ledgerTransactionId ?? "-"} mono />
+              <DetailFact label="Wallet client" value={operation.customerWalletId} mono />
+              <DetailFact label="Date creation" value={formatDateTime(operation.createdAt)} />
+              <DetailFact
+                label="Preparee le"
+                value={operation.preparedAt ? formatDateTime(operation.preparedAt) : "-"}
+              />
+              <DetailFact label="Postee le" value={operation.postedAt ? formatDateTime(operation.postedAt) : "-"} />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Parties operationnelles</h3>
+              <Badge variant="outline" className="font-mono text-[11px] text-muted-foreground">
+                {operation.agencyCode}
+              </Badge>
+            </div>
+            <div className="grid gap-3 rounded-md border bg-background p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <DetailFact label="Client" value={operation.customerName ?? operation.customerUserId} />
+                <DetailFact label="Client user" value={operation.customerUserId} mono />
+                <DetailFact label="Agence" value={operation.agencyCode} />
+                <DetailFact label="Agence ID" value={operation.agencyId} mono />
+                <DetailFact label="Agent" value={operation.agentUserId} mono />
+                <DetailFact label="Contrat agent" value={operation.agentContractId} mono />
+                <DetailFact label="Tenant" value={operation.tenantId} mono />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Montants et commissions</h3>
+              <Badge variant="outline" className="text-muted-foreground">
+                {operation.currency}
+              </Badge>
+            </div>
+            <div className="grid gap-3 rounded-md border bg-background p-3 md:grid-cols-2">
+              <DetailFact
+                label="Montant operation"
+                value={formatMinorAmount(operation.amountMinor, operation.currency)}
+              />
+              <DetailFact
+                label="Montant brut"
+                value={formatOptionalMinorAmount(operation.grossAmountMinor, operation.currency)}
+              />
+              <DetailFact
+                label="Net client"
+                value={formatOptionalMinorAmount(operation.customerNetAmountMinor, operation.currency)}
+              />
+              <DetailFact
+                label="Commission totale"
+                value={formatOptionalMinorAmount(operation.commissionAmountMinor, operation.currency)}
+              />
+              <DetailFact
+                label="Commission agent"
+                value={formatOptionalMinorAmount(operation.agentCommissionAmountMinor, operation.currency)}
+              />
+              <DetailFact
+                label="Commission platform"
+                value={formatOptionalMinorAmount(operation.platformCommissionAmountMinor, operation.currency)}
+              />
+            </div>
+          </div>
+
+          {operation.failureReason ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive text-sm">
+              {operation.failureReason}
+            </div>
+          ) : null}
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Metadata cash / ledger</h3>
+              <Badge variant="outline" className="text-muted-foreground">
+                {metadataEntries.length} champs
+              </Badge>
+            </div>
+            {metadataEntries.length ? (
+              <div className="overflow-hidden rounded-md border">
+                <Table>
+                  <TableBody>
+                    {metadataEntries.map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell className="w-[180px] align-top font-mono text-muted-foreground text-xs">
+                          {key}
+                        </TableCell>
+                        <TableCell className="whitespace-normal break-all text-sm">
+                          {formatMetadataValue(value)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed p-4 text-muted-foreground text-sm">
+                Aucune metadata disponible pour cette operation.
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <h3 className="font-medium text-sm">Payload operation</h3>
+            <pre className="max-h-72 overflow-auto rounded-md border bg-muted/20 p-3 text-xs">
+              {JSON.stringify(operation, null, 2)}
+            </pre>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DetailFact({ label, mono = false, value }: { label: string; mono?: boolean; value: string }) {
+  return (
+    <div className="grid gap-1">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className={cn("break-all text-sm", mono && "font-mono text-xs")}>{value}</span>
+    </div>
+  );
+}
+
+function CashOperationDirectionBadge({
+  operationType,
+  status,
+}: {
+  operationType: CashOperationResponse["operationType"];
+  status: CashOperationResponse["status"];
+}) {
+  const isCredit = operationType === "cash_in";
+  const Icon = isCredit ? ArrowDownLeft : ArrowUpRight;
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "gap-1",
+        isCredit && "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        !isCredit && "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      )}
+    >
+      <Icon className="size-3" />
+      {formatCashOperationType(operationType)}
+      <span className="text-muted-foreground">/</span>
+      {formatCashStatus(status)}
+    </Badge>
   );
 }
 
@@ -360,6 +537,26 @@ function formatSortLabel(sort: string) {
     }[key] ?? "Creation";
 
   return `${label}, ${direction === "asc" ? "asc" : "desc"}`;
+}
+
+function formatSignedAmount(operation: CashOperationResponse) {
+  const sign = operation.operationType === "cash_out" ? "-" : "+";
+
+  return `${sign}${formatMinorAmount(operation.amountMinor, operation.currency)}`;
+}
+
+function formatOptionalMinorAmount(value: number | null | undefined, currency: string) {
+  return value == null ? "-" : formatMinorAmount(value, currency);
+}
+
+function formatMetadataValue(value: unknown) {
+  if (value == null) {
+    return "-";
+  }
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
 }
 
 function shortId(value: string) {

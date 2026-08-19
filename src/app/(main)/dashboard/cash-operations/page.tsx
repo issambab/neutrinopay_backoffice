@@ -61,7 +61,7 @@ export default async function CashOperationsPage({ searchParams }: CashOperation
 
         <div className="grid gap-3 md:grid-cols-4">
           <MetricCard icon={ReceiptText} label="Total filtre" value={operations.totalElements.toString()} />
-          <MetricCard icon={CheckCircle2} label="Postees sur cette page" value={pagePosted.toString()} />
+          <MetricCard icon={CheckCircle2} label="Réussies sur cette page" value={pagePosted.toString()} />
           <MetricCard icon={Clock3} label="Preparees sur cette page" value={pagePrepared.toString()} />
           <MetricCard icon={AlertTriangle} label="Echecs sur cette page" value={pageFailed.toString()} />
         </div>
