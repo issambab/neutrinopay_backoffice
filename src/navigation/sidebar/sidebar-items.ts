@@ -7,6 +7,7 @@ import {
   Landmark,
   LayoutDashboard,
   type LucideIcon,
+  MonitorSmartphone,
   ReceiptText,
   Settings,
   ShieldCheck,
@@ -84,6 +85,7 @@ export const sidebarItems: NavGroup[] = [
         subItems: [
           { title: "Liste", url: "/dashboard/merchants" },
           { title: "Arborescence", url: "/dashboard/merchants/tree" },
+          { title: "Terminaux POS", url: "/dashboard/terminals", icon: MonitorSmartphone },
         ],
       },
       {

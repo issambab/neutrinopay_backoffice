@@ -172,6 +172,13 @@ export async function changeTerminalStatus(terminalId: string, payload: UpdateSt
   return readApiResponse<TerminalResponse>(response, "Unable to update terminal status.");
 }
 
+export async function regenerateTerminalActivationCode(terminalId: string) {
+  const response = await authenticatedBackendFetch(`/terminals/${terminalId}/activation-code/regenerate`, {
+    method: "POST",
+  });
+  return readApiResponse<TerminalResponse>(response, "Unable to regenerate terminal activation code.");
+}
+
 export async function deleteTerminal(terminalId: string) {
   const response = await authenticatedBackendFetch(`/terminals/${terminalId}`, { method: "DELETE" });
   return readEmptyResponse(response, "Unable to delete terminal.");

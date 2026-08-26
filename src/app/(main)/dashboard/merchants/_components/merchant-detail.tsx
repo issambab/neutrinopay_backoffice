@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { RegenerateTerminalActivationButton } from "@/components/organization/regenerate-terminal-activation-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -516,15 +517,25 @@ export function MerchantDetail({
           <ResourceList
             emptyText="Aucun terminal affecte."
             items={terminals.map((terminal) => ({
+              activationCode:
+                metadataText(terminal.metadata, "activationCode") ??
+                metadataText(terminal.metadata, "activation_code") ??
+                "-",
+              activationExpiresAt:
+                metadataText(terminal.metadata, "activationCodeExpiresAt") ??
+                metadataText(terminal.metadata, "activation_code_expires_at"),
               code: terminal.terminalCode,
+              deviceFingerprint: metadataText(terminal.metadata, "deviceFingerprint"),
               id: terminal.id,
               kind: "terminal",
+              lastSeenAt: terminal.lastSeenAt,
               meta: [formatEnum(terminal.deviceType), terminal.pointOfSaleName, terminal.serialNumber]
                 .filter(Boolean)
                 .join(" - "),
               name: terminal.terminalCode,
               serialNumber: terminal.serialNumber ?? "",
               status: terminal.status,
+              terminalId: terminal.id,
               typeValue: terminal.deviceType,
             }))}
             onDelete={deleteResource}
@@ -882,11 +893,16 @@ type ResourceItem = {
   kind: ResourceKind;
   latitude?: number | string;
   longitude?: number | string;
+  activationCode?: string;
+  activationExpiresAt?: string | null;
+  deviceFingerprint?: string | null;
+  lastSeenAt?: string | null;
   meta: string;
   name: string;
   region?: string;
   serialNumber?: string;
   status: LifecycleStatus;
+  terminalId?: string;
   typeValue?: string;
   zone?: string;
 };
@@ -932,6 +948,21 @@ function ResourceList({
                 </Badge>
               </div>
               <span className="text-muted-foreground text-sm">{item.meta || "-"}</span>
+              {item.kind === "terminal" && (
+                <div className="grid gap-2 rounded-md border bg-muted/10 p-3 md:grid-cols-2 xl:grid-cols-6">
+                  <CompactInfo label="Activation code" value={item.activationCode ?? "-"} mono />
+                  <CompactInfo label="Expiration" value={formatDateTime(item.activationExpiresAt)} />
+                  <CompactInfo label="Device fingerprint" value={item.deviceFingerprint ?? "Non lie"} mono />
+                  <CompactInfo label="Dernier signal" value={formatDateTime(item.lastSeenAt)} />
+                  <CompactInfo label="Terminal ID" value={item.terminalId ?? item.id} mono />
+                  <div className="grid content-end">
+                    <RegenerateTerminalActivationButton
+                      terminalCode={item.code}
+                      terminalId={item.terminalId ?? item.id}
+                    />
+                  </div>
+                </div>
+              )}
               <FieldGroup className="grid gap-3 md:grid-cols-3">
                 <TextField name="code" label="Code" defaultValue={item.code} required />
                 <TextField name="name" label="Nom" defaultValue={item.name} required />
@@ -1002,6 +1033,15 @@ function ResourceList({
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function CompactInfo({ label, mono = false, value }: { label: string; mono?: boolean; value: string }) {
+  return (
+    <div className="grid min-w-0 gap-1">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className={mono ? "truncate font-mono text-xs" : "truncate font-medium text-sm"}>{value}</span>
     </div>
   );
 }
@@ -1100,6 +1140,33 @@ function nullableNumber(value: FormDataEntryValue | null) {
 function normalizeCountry(value: FormDataEntryValue | null) {
   const text = nullableText(value);
   return text ? text.toUpperCase() : null;
+}
+
+function metadataText(metadata: Record<string, unknown> | null | undefined, key: string) {
+  const value = metadata?.[key];
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return null;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function formatEnum(value: string) {
