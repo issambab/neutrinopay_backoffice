@@ -1,16 +1,27 @@
+import { WalletMovementsCard } from "@/app/(main)/dashboard/wallets/[walletId]/_components/wallet-movements-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listMerchantOrders } from "@/lib/commerce/commerce.server";
 import { formatKycEnum, kycStatusClassName } from "@/lib/kyc/kyc-format";
 import { getMerchantWorkspace } from "@/lib/merchant/merchant.server";
 import { formatEnum, statusClassName } from "@/lib/merchant/merchant-format";
+import { listCurrentMerchantWalletTransactions } from "@/lib/wallet/wallet.server";
 
 import { MerchantEmptyState } from "../_components/merchant-empty-state";
 import { MerchantPendingOrdersCard } from "./merchant-pending-orders-card";
 
-export default async function MerchantDashboardPage() {
+type MerchantDashboardPageProps = {
+  searchParams?: Promise<{
+    txPage?: string;
+    txSize?: string;
+    txSort?: string;
+  }>;
+};
+
+export default async function MerchantDashboardPage({ searchParams }: MerchantDashboardPageProps) {
+  const query = await searchParams;
   const { business, pointsOfSale, stations, terminals } = await getMerchantWorkspace();
-  const pendingOrders = await getPendingOrders();
+  const [pendingOrders, transactions] = await Promise.all([getPendingOrders(), getMerchantTransactions(query)]);
 
   if (!business) {
     return <MerchantEmptyState text="Aucun marchand n'est rattache a ce compte." />;
@@ -43,6 +54,16 @@ export default async function MerchantDashboardPage() {
       </div>
 
       <MerchantPendingOrdersCard orders={pendingOrders.content} total={pendingOrders.totalElements} />
+
+      <WalletMovementsCard
+        description="Tous les mouvements postes sur le wallet de votre commerce."
+        emptyDescription="Les paiements et autres mouvements du commerce apparaitront ici."
+        emptyTitle="Aucune transaction marchand"
+        pageSize={parseTransactionPageSize(query?.txSize)}
+        showCashOperationDetails={false}
+        title="Toutes les transactions"
+        transactions={transactions}
+      />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <Card>
@@ -121,6 +142,28 @@ async function getPendingOrders() {
       totalPages: 0,
     };
   }
+}
+
+async function getMerchantTransactions(query?: { txPage?: string; txSize?: string; txSort?: string }) {
+  try {
+    return await listCurrentMerchantWalletTransactions({
+      page: parseTransactionPage(query?.txPage),
+      size: parseTransactionPageSize(query?.txSize),
+      sort: query?.txSort?.trim() || "createdAt,desc",
+    });
+  } catch {
+    return null;
+  }
+}
+
+function parseTransactionPage(value: string | undefined) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function parseTransactionPageSize(value: string | undefined) {
+  const parsed = Number(value);
+  return [10, 20, 30, 40, 50].includes(parsed) ? parsed : 10;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {

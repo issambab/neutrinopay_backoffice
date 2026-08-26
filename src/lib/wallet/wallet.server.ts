@@ -50,6 +50,11 @@ export async function listCurrentCustomerWalletTransactions(params: ListParams =
   return readApiResponse<PageResponse<WalletTransactionResponse>>(response, "Unable to load customer transactions.");
 }
 
+export async function listCurrentMerchantWalletTransactions(params: ListParams = {}) {
+  const response = await authenticatedBackendFetch(`/merchant/wallet/transactions?${paginationParams(params)}`);
+  return readApiResponse<PageResponse<WalletTransactionResponse>>(response, "Unable to load merchant transactions.");
+}
+
 export async function getCurrentCustomerWalletEligibility() {
   const response = await authenticatedBackendFetch("/customer/wallet/eligibility");
   return readApiResponse<CustomerWalletEligibilityResponse>(response, "Unable to load wallet eligibility.");

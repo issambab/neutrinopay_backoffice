@@ -16,6 +16,11 @@ import type { WalletTransactionResponse } from "@/lib/wallet/wallet.types";
 import { formatAssetMinorMoney, formatWalletEnum } from "@/lib/wallet/wallet-format";
 
 type UserWalletTransactionsCardProps = {
+  description?: string;
+  emptyDescription?: string;
+  emptyTitle?: string;
+  showCashOperationDetails?: boolean;
+  title?: string;
   transactions: WalletTransactionResponse[] | null;
 };
 
@@ -23,7 +28,14 @@ type CashOperationApiResponse = {
   operation: CashOperationResponse;
 };
 
-export function UserWalletTransactionsCard({ transactions }: UserWalletTransactionsCardProps) {
+export function UserWalletTransactionsCard({
+  description = "Derniers mouvements postes dans transaction_views",
+  emptyDescription = "Les Cash-in/Cash-out postes apparaitront ici.",
+  emptyTitle = "Aucun mouvement poste",
+  showCashOperationDetails = true,
+  title = "Historique wallet",
+  transactions,
+}: UserWalletTransactionsCardProps) {
   return (
     <Card>
       <CardHeader className="border-b">
@@ -33,8 +45,8 @@ export function UserWalletTransactionsCard({ transactions }: UserWalletTransacti
               <ReceiptText className="size-4 text-muted-foreground" />
             </span>
             <div>
-              <CardTitle>Historique wallet</CardTitle>
-              <p className="text-muted-foreground text-xs">Derniers mouvements postes dans transaction_views</p>
+              <CardTitle>{title}</CardTitle>
+              <p className="text-muted-foreground text-xs">{description}</p>
             </div>
           </div>
           <Badge variant="outline" className="w-fit text-muted-foreground">
@@ -79,7 +91,10 @@ export function UserWalletTransactionsCard({ transactions }: UserWalletTransacti
                         {formatDateTime(transaction.createdAt)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <TransactionDetailSheet transaction={transaction} />
+                        <TransactionDetailSheet
+                          showCashOperationDetails={showCashOperationDetails}
+                          transaction={transaction}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -87,7 +102,7 @@ export function UserWalletTransactionsCard({ transactions }: UserWalletTransacti
               </Table>
             </div>
           ) : (
-            <EmptyHistory />
+            <EmptyHistory description={emptyDescription} title={emptyTitle} />
           )
         ) : (
           <UnavailableHistory />
@@ -97,7 +112,13 @@ export function UserWalletTransactionsCard({ transactions }: UserWalletTransacti
   );
 }
 
-function TransactionDetailSheet({ transaction }: { transaction: WalletTransactionResponse }) {
+function TransactionDetailSheet({
+  showCashOperationDetails,
+  transaction,
+}: {
+  showCashOperationDetails: boolean;
+  transaction: WalletTransactionResponse;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [operation, setOperation] = useState<CashOperationResponse | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
@@ -106,7 +127,7 @@ function TransactionDetailSheet({ transaction }: { transaction: WalletTransactio
   const cashOperationId = getCashOperationId(transaction.metadata);
 
   useEffect(() => {
-    if (!isOpen || !cashOperationId || operation) {
+    if (!showCashOperationDetails || !isOpen || !cashOperationId || operation) {
       return;
     }
 
@@ -137,7 +158,7 @@ function TransactionDetailSheet({ transaction }: { transaction: WalletTransactio
       });
 
     return () => controller.abort();
-  }, [cashOperationId, isOpen, operation]);
+  }, [cashOperationId, isOpen, operation, showCashOperationDetails]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -169,22 +190,24 @@ function TransactionDetailSheet({ transaction }: { transaction: WalletTransactio
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm">Operation cash source</h3>
-              {cashOperationId ? (
-                <Badge variant="outline" className="font-mono text-[11px] text-muted-foreground">
-                  {shortId(cashOperationId)}
-                </Badge>
-              ) : null}
+          {showCashOperationDetails ? (
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm">Operation cash source</h3>
+                {cashOperationId ? (
+                  <Badge variant="outline" className="font-mono text-[11px] text-muted-foreground">
+                    {shortId(cashOperationId)}
+                  </Badge>
+                ) : null}
+              </div>
+              <CashOperationPanel
+                cashOperationId={cashOperationId}
+                error={operationError}
+                isLoading={isLoadingOperation}
+                operation={operation}
+              />
             </div>
-            <CashOperationPanel
-              cashOperationId={cashOperationId}
-              error={operationError}
-              isLoading={isLoadingOperation}
-              operation={operation}
-            />
-          </div>
+          ) : null}
 
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
@@ -337,12 +360,12 @@ function DirectionBadge({ direction, status }: { direction: string; status: stri
   );
 }
 
-function EmptyHistory() {
+function EmptyHistory({ description, title }: { description: string; title: string }) {
   return (
     <div className="grid place-items-center gap-2 rounded-md border border-dashed p-6 text-center">
       <Clock3 className="size-5 text-muted-foreground" />
-      <p className="font-medium text-sm">Aucun mouvement poste</p>
-      <p className="text-muted-foreground text-xs">Les Cash-in/Cash-out postes apparaitront ici.</p>
+      <p className="font-medium text-sm">{title}</p>
+      <p className="text-muted-foreground text-xs">{description}</p>
     </div>
   );
 }

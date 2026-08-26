@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeftRight,
   Boxes,
   GitBranch,
   LayoutDashboard,
@@ -41,6 +42,7 @@ export function MerchantNav({ pendingOrders = 0, userLabel }: MerchantNavProps) 
         { href: "/merchant/commerce", icon: Boxes, label: "Boutique" },
         { badge: pendingOrdersBadge, href: "/merchant/orders", icon: ReceiptText, label: "Commandes" },
         { href: "/merchant/sales", icon: TrendingUp, label: "Ventes" },
+        { href: "/merchant/transactions", icon: ArrowLeftRight, label: "Transactions" },
       ]}
       subtitle="Commerce"
       title="Neutrino Merchant"

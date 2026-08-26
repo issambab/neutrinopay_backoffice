@@ -11,13 +11,26 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import type { PageResponse, WalletTransactionResponse } from "@/lib/wallet/wallet.types";
 
 type WalletMovementsCardProps = {
+  description?: string;
+  emptyDescription?: string;
+  emptyTitle?: string;
   pageSize: number;
+  showCashOperationDetails?: boolean;
+  title?: string;
   transactions: PageResponse<WalletTransactionResponse> | null;
 };
 
 const PAGE_SIZES = [10, 20, 30, 40, 50];
 
-export function WalletMovementsCard({ pageSize, transactions }: WalletMovementsCardProps) {
+export function WalletMovementsCard({
+  description,
+  emptyDescription,
+  emptyTitle,
+  pageSize,
+  showCashOperationDetails,
+  title,
+  transactions,
+}: WalletMovementsCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -31,7 +44,14 @@ export function WalletMovementsCard({ pageSize, transactions }: WalletMovementsC
 
   return (
     <div className="grid gap-3">
-      <UserWalletTransactionsCard transactions={transactions?.content ?? null} />
+      <UserWalletTransactionsCard
+        description={description}
+        emptyDescription={emptyDescription}
+        emptyTitle={emptyTitle}
+        showCashOperationDetails={showCashOperationDetails}
+        title={title}
+        transactions={transactions?.content ?? null}
+      />
 
       {transactions ? (
         <div className="flex items-center justify-between rounded-md border bg-card px-3 py-2">
