@@ -1,4 +1,4 @@
-import { DollarSign, TrendingDown, TrendingUp, UserPlus, Users, Waves } from "lucide-react";
+import { BadgeCheck, ShieldAlert, SquareTerminal, TrendingDown, TrendingUp, WalletCards } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,20 +10,20 @@ export function MetricCards() {
         <CardHeader>
           <CardTitle>
             <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-              <DollarSign className="size-4" />
+              <WalletCards className="size-4" />
             </div>
           </CardTitle>
-          <CardDescription>Total Revenue</CardDescription>
+          <CardDescription>Volume wallet traite</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">$1,250.00</div>
+            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">284.6M</div>
             <Badge>
               <TrendingUp className="size-3" />
-              +12.5%
+              +18.4%
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm">Visitors for the last 6 months</p>
+          <p className="text-muted-foreground text-sm">MAD sur les 30 derniers jours</p>
         </CardContent>
       </Card>
 
@@ -31,62 +31,62 @@ export function MetricCards() {
         <CardHeader>
           <CardTitle>
             <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-              <UserPlus className="size-4" />
+              <BadgeCheck className="size-4" />
             </div>
           </CardTitle>
-          <CardDescription>New Customers</CardDescription>
+          <CardDescription>KYC approuves</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">1,234</div>
+            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">8,742</div>
+            <Badge>
+              <TrendingUp className="size-3" />
+              +9.8%
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-sm">Customers et marchands combines</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+              <SquareTerminal className="size-4" />
+            </div>
+          </CardTitle>
+          <CardDescription>Terminaux actifs</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">438</div>
+            <Badge>
+              <TrendingUp className="size-3" />
+              +6.2%
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-sm">Parc POS connecte en production</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+              <ShieldAlert className="size-4" />
+            </div>
+          </CardTitle>
+          <CardDescription>Alertes a traiter</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">27</div>
             <Badge variant="destructive">
               <TrendingDown className="size-3" />
-              -20%
+              -11.5%
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm">Acquisition needs attention</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-              <Users className="size-4" />
-            </div>
-          </CardTitle>
-          <CardDescription>Active Accounts</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">45,678</div>
-            <Badge>
-              <TrendingUp className="size-3" />
-              +12.5%
-            </Badge>
-          </div>
-          <p className="text-muted-foreground text-sm">Engagement exceeds targets</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-              <Waves className="size-4" />
-            </div>
-          </CardTitle>
-          <CardDescription>Growth Rate</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">4.5%</div>
-            <Badge>
-              <TrendingUp className="size-3" />
-              +4.5%
-            </Badge>
-          </div>
-          <p className="text-muted-foreground text-sm">Meets growth projections</p>
+          <p className="text-muted-foreground text-sm">Risque compliance en baisse</p>
         </CardContent>
       </Card>
     </div>

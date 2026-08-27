@@ -216,15 +216,15 @@ const chartData = chartValues.map((point, index) => ({
 
 const chartConfig = {
   newCustomers: {
-    label: "New Customers",
+    label: "Wallets actifs",
     color: "var(--chart-1)",
   },
   activeAccounts: {
-    label: "Active Accounts",
+    label: "KYC valides",
     color: "var(--chart-2)",
   },
   returningUsers: {
-    label: "Returning Users",
+    label: "Transactions POS",
     color: "var(--chart-3)",
   },
 } satisfies ChartConfig;
@@ -233,40 +233,42 @@ export function PerformanceOverview() {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle className="leading-none">Customer Activity</CardTitle>
+        <CardTitle className="leading-none">Activite plateforme</CardTitle>
         <CardDescription>
-          <span className="@[540px]/card:block hidden">Customer activity for the last 3 months</span>
-          <span className="@[540px]/card:hidden">Last 3 months</span>
+          <span className="@[540px]/card:block hidden">
+            Evolution demo des wallets, validations KYC et transactions POS
+          </span>
+          <span className="@[540px]/card:hidden">Derniers 3 mois</span>
         </CardDescription>
         <CardAction className="flex items-center gap-2">
           <Select defaultValue="quarter">
             <SelectTrigger size="sm" className="w-28">
-              <SelectValue placeholder="3 months" />
+              <SelectValue placeholder="3 mois" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Period</SelectLabel>
-                <SelectItem value="quarter">3 months</SelectItem>
+                <SelectLabel>Periode</SelectLabel>
+                <SelectItem value="quarter">3 mois</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
 
           <Select defaultValue="all">
             <SelectTrigger size="sm" className="w-32">
-              <SelectValue placeholder="All segments" />
+              <SelectValue placeholder="Tous modules" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Segments</SelectLabel>
-                <SelectItem value="all">All segments</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="organic">Organic</SelectItem>
+                <SelectLabel>Modules</SelectLabel>
+                <SelectItem value="all">Tous modules</SelectItem>
+                <SelectItem value="paid">Wallet</SelectItem>
+                <SelectItem value="organic">Commerce</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
 
           <Button variant="outline" size="sm">
-            View report
+            Voir rapport
           </Button>
         </CardAction>
       </CardHeader>
@@ -289,7 +291,7 @@ export function PerformanceOverview() {
               tickMargin={8}
               minTickGap={48}
               tickFormatter={(value) =>
-                parseISO(value).toLocaleDateString("en-US", {
+                parseISO(value).toLocaleDateString("fr-FR", {
                   month: "short",
                   day: "numeric",
                 })

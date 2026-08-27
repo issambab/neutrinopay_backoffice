@@ -50,7 +50,7 @@ export const recentCustomersColumns: ColumnDef<RecentCustomerRow>[] = [
   },
   {
     accessorKey: "name",
-    header: "Customer",
+    header: "Client",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <span className="flex size-8 items-center justify-center rounded-md border bg-muted">
@@ -76,7 +76,7 @@ export const recentCustomersColumns: ColumnDef<RecentCustomerRow>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "Statut",
     filterFn: "equalsString",
     cell: ({ row }) => (
       <Badge variant="outline" className="px-1.5 text-muted-foreground">
@@ -86,7 +86,7 @@ export const recentCustomersColumns: ColumnDef<RecentCustomerRow>[] = [
   },
   {
     accessorKey: "billing",
-    header: "Billing",
+    header: "Paiement",
     filterFn: "equalsString",
     cell: ({ row }) => (
       <Badge variant="outline" className="px-1.5 text-muted-foreground">
@@ -97,7 +97,7 @@ export const recentCustomersColumns: ColumnDef<RecentCustomerRow>[] = [
   },
   {
     accessorKey: "plan",
-    header: "Plan",
+    header: "Offre",
     cell: ({ row }) => <span className="text-sm">{row.original.plan}</span>,
   },
   {
@@ -114,15 +114,15 @@ export const recentCustomersColumns: ColumnDef<RecentCustomerRow>[] = [
   },
   {
     accessorKey: "joined",
-    header: "Joined",
+    header: "Inscription",
     cell: ({ row }) => {
       const baseDate = parseISO(row.original.joined);
       const joinedAt = addMinutes(baseDate, 9 * 60 + (Number(row.original.id) % 12) * 17);
 
       return (
         <div className="grid gap-0.5">
-          <span className="text-sm">{format(joinedAt, "do MMMM yyyy")}</span>
-          <span className="text-muted-foreground text-xs">at {format(joinedAt, "h:mm a")}</span>
+          <span className="text-sm">{format(joinedAt, "dd MMM yyyy")}</span>
+          <span className="text-muted-foreground text-xs">a {format(joinedAt, "HH:mm")}</span>
         </div>
       );
     },
