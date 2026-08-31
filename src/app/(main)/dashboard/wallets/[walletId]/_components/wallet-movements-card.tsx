@@ -11,10 +11,13 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import type { PageResponse, WalletTransactionResponse } from "@/lib/wallet/wallet.types";
 
 type WalletMovementsCardProps = {
+  counterpartyColumn?: boolean;
   description?: string;
   emptyDescription?: string;
   emptyTitle?: string;
+  featured?: boolean;
   pageSize: number;
+  showMovementStatus?: boolean;
   showCashOperationDetails?: boolean;
   title?: string;
   transactions: PageResponse<WalletTransactionResponse> | null;
@@ -23,10 +26,13 @@ type WalletMovementsCardProps = {
 const PAGE_SIZES = [10, 20, 30, 40, 50];
 
 export function WalletMovementsCard({
+  counterpartyColumn,
   description,
   emptyDescription,
   emptyTitle,
+  featured,
   pageSize,
+  showMovementStatus,
   showCashOperationDetails,
   title,
   transactions,
@@ -45,9 +51,12 @@ export function WalletMovementsCard({
   return (
     <div className="grid gap-3">
       <UserWalletTransactionsCard
+        counterpartyColumn={counterpartyColumn}
         description={description}
         emptyDescription={emptyDescription}
         emptyTitle={emptyTitle}
+        featured={featured}
+        showMovementStatus={showMovementStatus}
         showCashOperationDetails={showCashOperationDetails}
         title={title}
         transactions={transactions?.content ?? null}
@@ -58,10 +67,10 @@ export function WalletMovementsCard({
           <div className="hidden flex-1 text-muted-foreground text-sm lg:flex">
             {transactions.content.length} mouvement(s) affiche(s) sur {transactions.totalElements}.
           </div>
-          <div className="flex w-full items-center gap-8 lg:w-fit">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:w-fit lg:gap-8">
             <div className="hidden items-center gap-2 lg:flex">
               <Label htmlFor="wallet-movements-rows-per-page" className="font-medium text-sm">
-                Rows per page
+                Lignes par page
               </Label>
               <Select value={`${pageSize}`} onValueChange={(value) => pushPage(0, Number(value))}>
                 <SelectTrigger size="sm" className="w-20" id="wallet-movements-rows-per-page">
@@ -79,9 +88,9 @@ export function WalletMovementsCard({
               </Select>
             </div>
             <div className="flex w-fit items-center justify-center font-medium text-sm">
-              Page {transactions.page + 1} of {Math.max(transactions.totalPages, 1)}
+              Page {transactions.page + 1} sur {Math.max(transactions.totalPages, 1)}
             </div>
-            <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            <div className="flex w-full items-center justify-end gap-2 sm:w-fit lg:ml-0">
               <PaginationIconButton disabled={transactions.first} onClick={() => pushPage(0)}>
                 <span className="sr-only">Aller a la premiere page</span>
                 <ChevronsLeft className="size-4" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, ReceiptText, Send, ShieldCheck, UserRound, WalletCards } from "lucide-react";
+import { LayoutDashboard, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
 
 import { WorkspaceSidebar } from "@/app/(main)/_components/workspace-sidebar";
 
@@ -16,9 +16,7 @@ const NAV_ITEMS = [
   { href: "/user/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/user/profile", icon: UserRound, label: "Profil" },
   { href: "/user/kyc", icon: ShieldCheck, label: "KYC" },
-  { href: "/user/transactions", icon: ReceiptText, label: "Transactions", disabled: true },
-  { href: "/user/transfers", icon: Send, label: "Transferts", disabled: true },
-  { href: "/user/instruments", icon: WalletCards, label: "Moyens de paiement", disabled: true },
+  { href: "/user/transactions", icon: ReceiptText, label: "Transactions" },
 ];
 
 export function UserNav({ balance, userLabel }: UserNavProps) {

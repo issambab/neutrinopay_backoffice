@@ -19,6 +19,13 @@ type ListParams = {
   sort?: string;
 };
 
+type CustomerTransactionListParams = ListParams & {
+  createdFrom?: string;
+  direction?: string;
+  operationType?: string;
+  query?: string;
+};
+
 type AdminWalletListParams = ListParams & {
   ownerId?: string;
   ownerType?: OwnerType;
@@ -45,8 +52,14 @@ export async function listCurrentCustomerWalletAccounts() {
   return readApiResponse<WalletAccountResponse[]>(response, "Unable to load customer wallet accounts.");
 }
 
-export async function listCurrentCustomerWalletTransactions(params: ListParams = {}) {
-  const response = await authenticatedBackendFetch(`/customer/wallet/transactions?${paginationParams(params)}`);
+export async function listCurrentCustomerWalletTransactions(params: CustomerTransactionListParams = {}) {
+  const query = paginationParams(params);
+  appendIfPresent(query, "operationType", params.operationType);
+  appendIfPresent(query, "direction", params.direction);
+  appendIfPresent(query, "createdFrom", params.createdFrom);
+  appendIfPresent(query, "query", params.query);
+
+  const response = await authenticatedBackendFetch(`/customer/wallet/transactions?${query}`);
   return readApiResponse<PageResponse<WalletTransactionResponse>>(response, "Unable to load customer transactions.");
 }
 

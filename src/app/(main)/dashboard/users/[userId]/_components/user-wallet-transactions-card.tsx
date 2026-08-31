@@ -16,9 +16,12 @@ import type { WalletTransactionResponse } from "@/lib/wallet/wallet.types";
 import { formatAssetMinorMoney, formatWalletEnum } from "@/lib/wallet/wallet-format";
 
 type UserWalletTransactionsCardProps = {
+  counterpartyColumn?: boolean;
   description?: string;
   emptyDescription?: string;
   emptyTitle?: string;
+  featured?: boolean;
+  showMovementStatus?: boolean;
   showCashOperationDetails?: boolean;
   title?: string;
   transactions: WalletTransactionResponse[] | null;
@@ -29,23 +32,31 @@ type CashOperationApiResponse = {
 };
 
 export function UserWalletTransactionsCard({
+  counterpartyColumn = false,
   description = "Derniers mouvements postes dans transaction_views",
   emptyDescription = "Les Cash-in/Cash-out postes apparaitront ici.",
   emptyTitle = "Aucun mouvement poste",
+  featured = false,
+  showMovementStatus = true,
   showCashOperationDetails = true,
   title = "Historique wallet",
   transactions,
 }: UserWalletTransactionsCardProps) {
   return (
-    <Card>
-      <CardHeader className="border-b">
+    <Card className={cn(featured && "border-primary/20 bg-primary/[0.025] shadow-sm")}>
+      <CardHeader className={cn("border-b", featured && "bg-background/75")}>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md border bg-muted/30">
-              <ReceiptText className="size-4 text-muted-foreground" />
+            <span
+              className={cn(
+                "flex size-9 items-center justify-center rounded-md border bg-muted/30",
+                featured && "size-10 border-primary/20 bg-primary/10 text-primary",
+              )}
+            >
+              <ReceiptText className={cn("size-4 text-muted-foreground", featured && "size-5 text-primary")} />
             </span>
             <div>
-              <CardTitle>{title}</CardTitle>
+              <CardTitle className={cn(featured && "text-xl")}>{title}</CardTitle>
               <p className="text-muted-foreground text-xs">{description}</p>
             </div>
           </div>
@@ -57,14 +68,14 @@ export function UserWalletTransactionsCard({
       <CardContent>
         {transactions ? (
           transactions.length ? (
-            <div className="overflow-hidden rounded-md border">
+            <div className="overflow-x-auto rounded-md border bg-background">
               <Table>
                 <TableHeader className="bg-muted/20">
                   <TableRow>
                     <TableHead className="w-[150px]">Mouvement</TableHead>
                     <TableHead>Operation</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
-                    <TableHead>Reference</TableHead>
+                    <TableHead>{counterpartyColumn ? "Expediteur / destinataire" : "Reference"}</TableHead>
                     <TableHead className="text-right">Date</TableHead>
                     <TableHead className="w-[96px] text-right">Detail</TableHead>
                   </TableRow>
@@ -73,7 +84,11 @@ export function UserWalletTransactionsCard({
                   {transactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        <DirectionBadge direction={transaction.direction} status={transaction.status} />
+                        <DirectionBadge
+                          direction={transaction.direction}
+                          showStatus={showMovementStatus}
+                          status={transaction.status}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="grid gap-1">
@@ -83,9 +98,13 @@ export function UserWalletTransactionsCard({
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatSignedAmount(transaction)}</TableCell>
                       <TableCell>
-                        <span className="block max-w-[260px] truncate font-mono text-muted-foreground text-xs">
-                          {transaction.reference ?? transaction.id}
-                        </span>
+                        {counterpartyColumn ? (
+                          <CounterpartyCell transaction={transaction} />
+                        ) : (
+                          <span className="block max-w-[260px] truncate font-mono text-muted-foreground text-xs">
+                            {transaction.reference ?? transaction.id}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground text-xs">
                         {formatDateTime(transaction.createdAt)}
@@ -339,7 +358,26 @@ function DetailFact({ label, mono = false, value }: { label: string; mono?: bool
   );
 }
 
-function DirectionBadge({ direction, status }: { direction: string; status: string }) {
+function CounterpartyCell({ transaction }: { transaction: WalletTransactionResponse }) {
+  const counterparty = resolveCounterparty(transaction);
+
+  return (
+    <div className="grid max-w-[260px] gap-1">
+      <span className="font-medium text-sm">{counterparty.name}</span>
+      <span className="text-muted-foreground text-xs">{counterparty.label}</span>
+    </div>
+  );
+}
+
+function DirectionBadge({
+  direction,
+  showStatus = true,
+  status,
+}: {
+  direction: string;
+  showStatus?: boolean;
+  status: string;
+}) {
   const isCredit = direction === "credit";
   const Icon = isCredit ? ArrowDownLeft : ArrowUpRight;
 
@@ -354,8 +392,12 @@ function DirectionBadge({ direction, status }: { direction: string; status: stri
     >
       <Icon className="size-3" />
       {formatWalletEnum(direction)}
-      <span className="text-muted-foreground">/</span>
-      {formatWalletEnum(status)}
+      {showStatus ? (
+        <>
+          <span className="text-muted-foreground">/</span>
+          {formatWalletEnum(status)}
+        </>
+      ) : null}
     </Badge>
   );
 }
@@ -379,7 +421,55 @@ function UnavailableHistory() {
 }
 
 function getCashOperationId(metadata?: Record<string, unknown> | null) {
-  const value = metadata?.cash_operation_id;
+  const value = metadata?.cash_operation_id ?? metadata?.cashOperationId;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function resolveCounterparty(transaction: WalletTransactionResponse) {
+  const metadata = transaction.metadata ?? {};
+  const source = metadataString(metadata, "source");
+  const isDebit = transaction.direction === "debit";
+  const fallbackLabel = isDebit ? "Destinataire" : "Expediteur";
+  const fallbackName =
+    metadataString(metadata, "counterpartyName") ??
+    metadataString(metadata, "merchantName") ??
+    metadataString(metadata, isDebit ? "receiverName" : "senderName") ??
+    metadataString(metadata, isDebit ? "receiverCustomerId" : "senderCustomerId") ??
+    metadataString(metadata, "counterpartyCustomerId") ??
+    metadataString(metadata, "agentName") ??
+    metadataString(metadata, "agentUserId") ??
+    transaction.reference ??
+    shortId(transaction.id);
+
+  if (source === "customer_transfer") {
+    return {
+      label: isDebit ? "Destinataire du transfert" : "Expediteur du transfert",
+      name: fallbackName,
+    };
+  }
+
+  if (source === "customer_pos_payment" || transaction.operationType === "payment") {
+    return {
+      label: isDebit ? "Marchand destinataire" : "Client expediteur",
+      name: fallbackName,
+    };
+  }
+
+  if (source === "cash_operation" || transaction.operationType.startsWith("cash_")) {
+    return {
+      label: isDebit ? "Agent destinataire" : "Agent expediteur",
+      name: fallbackName,
+    };
+  }
+
+  return {
+    label: fallbackLabel,
+    name: fallbackName,
+  };
+}
+
+function metadataString(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 

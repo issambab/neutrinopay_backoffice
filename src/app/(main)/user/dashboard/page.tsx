@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { siMastercard } from "simple-icons";
 
+import { WalletMovementsCard } from "@/app/(main)/dashboard/wallets/[walletId]/_components/wallet-movements-card";
 import LogoNeutrinoCar from "@/components/icon/logo-neutrino-car";
 import { SimpleIcon } from "@/components/simple-icon";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ import {
 } from "@/lib/wallet/wallet.server";
 import type {
   CustomerWalletEligibilityResponse,
+  PageResponse,
   WalletAccountResponse,
   WalletBalanceResponse,
   WalletResponse,
@@ -48,7 +50,17 @@ import {
 
 import { ProvisionUserWalletButton } from "./provision-user-wallet-button";
 
-export default async function UserDashboardPage() {
+type UserDashboardPageProps = {
+  searchParams?: Promise<{
+    txPage?: string;
+    txSize?: string;
+    txSort?: string;
+  }>;
+};
+
+export default async function UserDashboardPage({ searchParams }: UserDashboardPageProps) {
+  const query = await searchParams;
+  const transactionPageSize = parseTransactionPageSize(query?.txSize);
   const [profile, wallet, eligibility] = await Promise.all([
     getCurrentUserProfile(),
     safeGetWallet(),
@@ -56,10 +68,28 @@ export default async function UserDashboardPage() {
   ]);
   const displayName = profile.user.fullName ?? profile.user.email ?? "Utilisateur wallet";
   const [transactions, walletBalance] = wallet
-    ? await Promise.all([safeGetTransactions(), safeGetBalance()])
-    : [[], null];
+    ? await Promise.all([
+        safeGetTransactions({
+          page: parseTransactionPage(query?.txPage),
+          size: transactionPageSize,
+          sort: query?.txSort?.trim() || "createdAt,desc",
+        }),
+        safeGetBalance(),
+      ])
+    : [null, null];
   return (
     <div className="grid gap-6">
+      <div className="grid gap-4 md:grid-cols-4">
+        <MetricCard icon={WalletCards} label="Solde disponible" value={formatDisplayBalance(wallet, walletBalance)} />
+        <MetricCard
+          icon={Clock3}
+          label="Solde en attente"
+          value={formatMinorMoney(wallet?.pendingBalanceMinor ?? 0, wallet?.defaultCurrency ?? "TND")}
+        />
+        <MetricCard icon={FileCheck2} label="KYC" value={formatWalletEnum(profile.user.kycStatus)} />
+        <MetricCard icon={CreditCard} label="Comptes" value={String(wallet?.accounts.length ?? 0)} />
+      </div>
+
       <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <div className="flex flex-col gap-4 border-b bg-muted/25 px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-6">
           <div>
@@ -82,8 +112,23 @@ export default async function UserDashboardPage() {
             </Badge>
           </div>
         </div>
-        <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(19rem,0.78fr)] lg:p-5">
-          <div className="grid gap-4">
+        <div className="grid gap-4 p-4 lg:p-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.72fr)]">
+          <div className="min-w-0">
+            <WalletMovementsCard
+              counterpartyColumn
+              description="Vos paiements, transferts, cash-in et cash-out, classes du plus recent au plus ancien."
+              emptyDescription="Vos paiements, transferts, cash-in et cash-out apparaitront ici."
+              emptyTitle="Aucune transaction client"
+              featured
+              pageSize={transactionPageSize}
+              showCashOperationDetails={false}
+              showMovementStatus={false}
+              title="Transactions effectuees"
+              transactions={transactions}
+            />
+          </div>
+
+          <div className="grid content-start gap-4">
             {wallet ? (
               <WalletOverviewPanel
                 balance={walletBalance}
@@ -95,27 +140,12 @@ export default async function UserDashboardPage() {
             ) : (
               <MissingWalletPanel />
             )}
-          </div>
-
-          <div className="grid gap-4">
-            <EligibilityRail eligibility={eligibility} />
             <WalletServicesPanel eligibility={eligibility} />
           </div>
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard icon={WalletCards} label="Solde disponible" value={formatDisplayBalance(wallet, walletBalance)} />
-        <MetricCard
-          icon={Clock3}
-          label="Solde en attente"
-          value={formatMinorMoney(wallet?.pendingBalanceMinor ?? 0, wallet?.defaultCurrency ?? "TND")}
-        />
-        <MetricCard icon={FileCheck2} label="KYC" value={formatWalletEnum(profile.user.kycStatus)} />
-        <MetricCard icon={CreditCard} label="Comptes" value={String(wallet?.accounts.length ?? 0)} />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.72fr)]">
         <Card>
           <CardHeader className="border-b">
             <CardTitle>Comptes wallet</CardTitle>
@@ -129,26 +159,7 @@ export default async function UserDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle>Dernieres transactions</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            {transactions.length ? (
-              transactions.map((transaction) => (
-                <div key={transaction.id} className="rounded-md border p-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{formatWalletEnum(transaction.operationType)}</span>
-                    <span>{formatMinorMoney(transaction.amountMinor, wallet?.defaultCurrency ?? "TND")}</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">{formatWalletEnum(transaction.status)}</p>
-                </div>
-              ))
-            ) : (
-              <EmptyText text="Aucune transaction pour le moment." />
-            )}
-          </CardContent>
-        </Card>
+        <EligibilityRail eligibility={eligibility} />
       </div>
 
       <Card className="overflow-hidden">
@@ -580,16 +591,15 @@ async function safeGetWallet() {
   }
 }
 
-async function safeGetTransactions() {
+async function safeGetTransactions(params: {
+  page: number;
+  size: number;
+  sort: string;
+}): Promise<PageResponse<WalletTransactionResponse> | null> {
   try {
-    const page = await listCurrentCustomerWalletTransactions({
-      page: 0,
-      size: 5,
-      sort: "createdAt,desc",
-    });
-    return page.content;
+    return await listCurrentCustomerWalletTransactions(params);
   } catch {
-    return [] as WalletTransactionResponse[];
+    return null;
   }
 }
 
@@ -615,4 +625,14 @@ function formatDisplayBalance(wallet: WalletResponse | null, balance: WalletBala
   }
 
   return formatMinorMoney(wallet?.availableBalanceMinor ?? 0, wallet?.defaultCurrency ?? "TND");
+}
+
+function parseTransactionPage(value: string | undefined) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function parseTransactionPageSize(value: string | undefined) {
+  const parsed = Number(value);
+  return [10, 20, 30, 40, 50].includes(parsed) ? parsed : 10;
 }
