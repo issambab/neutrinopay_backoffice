@@ -154,8 +154,42 @@ jobs:
              git checkout main
              git pull --ff-only origin main
              printf 'BACKOFFICE_IMAGE=%s\n' '$BACKOFFICE_IMAGE' > .deploy.env
-             printf '%s\n' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin
-             docker compose --env-file .env.prod --env-file .deploy.env -f docker-compose.prod.yml pull backoffice
+             getent hosts ghcr.io || true
+             if command -v curl >/dev/null 2>&1; then
+               curl -sSIL --connect-timeout 10 --max-time 20 https://ghcr.io/v2/ || true
+             fi
+             retry() {
+               attempt=1
+               max_attempts=5
+
+               until \"\$@\"; do
+                 if [ \"\$attempt\" -ge \"\$max_attempts\" ]; then
+                   return 1
+                 fi
+
+                 sleep_seconds=\$((attempt * 10))
+                 echo \"Command failed. Retrying in \$sleep_seconds seconds... (\$attempt/\$max_attempts)\"
+                 sleep \"\$sleep_seconds\"
+                 attempt=\$((attempt + 1))
+               done
+             }
+             retry_ghcr_login() {
+               attempt=1
+               max_attempts=5
+
+               until printf '%s\n' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin; do
+                 if [ \"\$attempt\" -ge \"\$max_attempts\" ]; then
+                   return 1
+                 fi
+
+                 sleep_seconds=\$((attempt * 10))
+                 echo \"GHCR login failed. Retrying in \$sleep_seconds seconds... (\$attempt/\$max_attempts)\"
+                 sleep \"\$sleep_seconds\"
+                 attempt=\$((attempt + 1))
+               done
+             }
+             retry_ghcr_login
+             retry docker compose --env-file .env.prod --env-file .deploy.env -f docker-compose.prod.yml pull backoffice
              docker compose --env-file .env.prod --env-file .deploy.env -f docker-compose.prod.yml up -d --no-build --remove-orphans backoffice
              docker compose --env-file .env.prod --env-file .deploy.env -f docker-compose.prod.yml ps
              docker image prune -f"
