@@ -126,20 +126,15 @@ export function UserWalletTransactionsCard({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map(
-                    (transaction) => (
-                      console.log("Transaction:", transaction),
-                      (
-                        <TransactionRow
-                          counterpartyColumn={counterpartyColumn}
-                          key={transaction.id}
-                          showCashOperationDetails={showCashOperationDetails}
-                          showMovementStatus={showMovementStatus}
-                          transaction={transaction}
-                        />
-                      )
-                    ),
-                  )}
+                  {transactions.map((transaction) => (
+                    <TransactionRow
+                      counterpartyColumn={counterpartyColumn}
+                      key={transaction.id}
+                      showCashOperationDetails={showCashOperationDetails}
+                      showMovementStatus={showMovementStatus}
+                      transaction={transaction}
+                    />
+                  ))}
                 </TableBody>
               </Table>
             </div>
