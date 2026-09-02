@@ -381,7 +381,7 @@ export function MerchantDetail({
         <TabsTrigger value="pos">Points de vente</TabsTrigger>
         <TabsTrigger value="terminals">Terminaux</TabsTrigger>
         <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-        <TabsTrigger value="kyc">KYC</TabsTrigger>
+        <TabsTrigger value="kyc">KYB</TabsTrigger>
         <TabsTrigger value="compliance">Compliance</TabsTrigger>
       </TabsList>
 
@@ -397,7 +397,7 @@ export function MerchantDetail({
                 variant="outline"
                 className={kycStatusClassName(business.kycStatus ?? kycProfile?.status ?? "not_started")}
               >
-                KYC {formatKycEnum(business.kycStatus ?? kycProfile?.status ?? "not_started")}
+                KYB {formatKycEnum(business.kycStatus ?? kycProfile?.status ?? "not_started")}
               </Badge>
             </div>
           </CardHeader>

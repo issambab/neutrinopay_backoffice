@@ -21,10 +21,10 @@ export default async function MerchantKycPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>KYC indisponible</CardTitle>
+          <CardTitle>KYB indisponible</CardTitle>
         </CardHeader>
         <CardContent className="text-muted-foreground text-sm">
-          {error instanceof Error ? error.message : "Impossible de charger votre dossier KYC."}
+          {error instanceof Error ? error.message : "Impossible de charger votre dossier KYB."}
         </CardContent>
       </Card>
     );

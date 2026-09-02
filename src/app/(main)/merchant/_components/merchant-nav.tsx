@@ -38,7 +38,7 @@ export function MerchantNav({ pendingOrders = 0, userLabel }: MerchantNavProps) 
           icon: GitBranch,
           label: "Hierarchique",
         },
-        { href: "/merchant/kyc", icon: ShieldCheck, label: "KYC" },
+        { href: "/merchant/kyc", icon: ShieldCheck, label: "KYB" },
         { href: "/merchant/commerce", icon: Boxes, label: "Boutique" },
         { badge: pendingOrdersBadge, href: "/merchant/orders", icon: ReceiptText, label: "Commandes" },
         { href: "/merchant/sales", icon: TrendingUp, label: "Ventes" },

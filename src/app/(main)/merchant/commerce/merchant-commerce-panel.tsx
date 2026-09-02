@@ -447,7 +447,7 @@ function CommerceHeader({
           variant="outline"
           className={canPublish ? commerceStatusClassName("active") : commerceStatusClassName("suspended")}
         >
-          {canPublish ? "Publication autorisee" : "KYC requis pour publier"}
+          {canPublish ? "Publication autorisee" : "KYB requis pour publier"}
         </Badge>
         <Button onClick={onOpenStore} variant="outline">
           <Settings2 />
@@ -485,7 +485,7 @@ function PublishWarning() {
   return (
     <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-amber-800 text-sm dark:text-amber-300">
       Le catalogue peut etre prepare maintenant. La publication publique reste bloquee tant que le marchand n'est pas
-      actif avec KYC valide.
+      actif avec KYB valide.
     </div>
   );
 }

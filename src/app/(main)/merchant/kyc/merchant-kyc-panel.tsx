@@ -63,7 +63,7 @@ export function MerchantKycPanel({ business, documents, profile }: MerchantKycPa
         jsonRequest("POST", {
           kycLevel: "basic",
           riskLevel: "low",
-          initialNote: "KYC demarre depuis le portail marchand",
+          initialNote: "KYB demarre depuis le portail marchand",
           metadata: {},
         }),
       );
@@ -72,10 +72,10 @@ export function MerchantKycPanel({ business, documents, profile }: MerchantKycPa
         profile?: KycProfileResponse;
       } | null;
       if (!response.ok || !result?.profile) {
-        toast.error(result?.message ?? "Impossible de demarrer le KYC.");
+        toast.error(result?.message ?? "Impossible de demarrer le KYB.");
         return;
       }
-      toast.success("Dossier KYC demarre.");
+      toast.success("Dossier KYB demarre.");
       router.refresh();
     } finally {
       setIsBusy(false);
@@ -112,7 +112,7 @@ export function MerchantKycPanel({ business, documents, profile }: MerchantKycPa
     <div className="grid gap-5">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="font-semibold text-2xl tracking-tight">KYC marchand</h1>
+          <h1 className="font-semibold text-2xl tracking-tight">KYB marchand</h1>
           <p className="text-muted-foreground text-sm">{business.name}</p>
         </div>
         <Badge variant="outline" className={kycStatusClassName(publicStatus)}>
@@ -127,11 +127,11 @@ export function MerchantKycPanel({ business, documents, profile }: MerchantKycPa
           </CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-muted-foreground text-sm">
-              Creez votre dossier KYC pour envoyer les documents de verification de votre activite.
+              Creez votre dossier KYB pour envoyer les documents de verification de votre activite.
             </p>
             <Button className="w-fit" onClick={createProfile} disabled={isBusy}>
               <ShieldCheck />
-              Demarrer KYC
+              Demarrer KYB
             </Button>
           </CardContent>
         </Card>
@@ -400,17 +400,17 @@ function buildPublicTimeline(profile: KycProfileResponse | null, documents: KycD
       description: "Dossier de verification cree depuis le portail marchand.",
       id: `profile-created-${profile.id}`,
       status: profile.status,
-      title: "Dossier KYC demarre",
+      title: "Dossier KYB demarre",
     });
 
     if (profile.reviewedAt) {
       events.push({
         date: profile.reviewedAt,
-        description: "Decision globale appliquee sur votre dossier KYC.",
+        description: "Decision globale appliquee sur votre dossier KYB.",
         id: `profile-reviewed-${profile.id}`,
         rejectionReason: profile.rejectionReason,
         status: profile.status,
-        title: "Dossier KYC revise",
+        title: "Dossier KYB revise",
       });
     }
   }

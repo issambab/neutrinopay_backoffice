@@ -50,6 +50,7 @@ type DocumentGroup = {
 export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profile }: KycAdminPanelProps) {
   const router = useRouter();
   const [isBusy, setIsBusy] = useState(false);
+  const complianceLabel = ownerType === "business" ? "KYB" : "KYC";
   const documentTypes = useMemo(() => getDocumentTypes(ownerType), [ownerType]);
   const requiredDocumentTypes = useMemo(() => getRequiredDocumentTypes(ownerType), [ownerType]);
   const documentGroups = useMemo(() => groupDocumentsByType(documents, documentTypes), [documents, documentTypes]);
@@ -64,7 +65,7 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
       const response = await fetch(
         "/api/kyc/profiles",
         jsonRequest("POST", {
-          initialNote: `KYC marchand demarre depuis le backoffice pour ${ownerLabel}`,
+          initialNote: `${complianceLabel} marchand demarre depuis le backoffice pour ${ownerLabel}`,
           kycLevel: "basic",
           metadata: {},
           ownerId,
@@ -77,10 +78,10 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
         profile?: KycProfileResponse;
       } | null;
       if (!response.ok || !result?.profile) {
-        toast.error(result?.message ?? "Impossible de demarrer le KYC.");
+        toast.error(result?.message ?? `Impossible de demarrer le ${complianceLabel}.`);
         return;
       }
-      toast.success("Dossier KYC cree.");
+      toast.success(`Dossier ${complianceLabel} cree.`);
       router.refresh();
     } finally {
       setIsBusy(false);
@@ -90,7 +91,7 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
   async function uploadDocument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) {
-      toast.error("Creez le dossier KYC avant l'upload.");
+      toast.error(`Creez le dossier ${complianceLabel} avant l'upload.`);
       return;
     }
     setIsBusy(true);
@@ -109,7 +110,7 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
         toast.error(result?.message ?? "Impossible d'uploader le document.");
         return;
       }
-      toast.success("Document KYC ajoute.");
+      toast.success(`Document ${complianceLabel} ajoute.`);
       form.reset();
       router.refresh();
     } finally {
@@ -121,11 +122,11 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
     if (!profile) {
       return;
     }
-    await patchReview(`/api/kyc/profiles/${profile.id}/review`, payload, "Dossier KYC mis a jour.");
+    await patchReview(`/api/kyc/profiles/${profile.id}/review`, payload, `Dossier ${complianceLabel} mis a jour.`);
   }
 
   async function reviewDocument(documentId: string, payload: ReviewKycDocumentRequest) {
-    await patchReview(`/api/kyc/documents/${documentId}/review`, payload, "Document KYC mis a jour.");
+    await patchReview(`/api/kyc/documents/${documentId}/review`, payload, `Document ${complianceLabel} mis a jour.`);
   }
 
   async function patchReview(
@@ -140,7 +141,7 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
         message?: string;
       } | null;
       if (!response.ok) {
-        toast.error(result?.message ?? "Impossible de valider le KYC.");
+        toast.error(result?.message ?? `Impossible de valider le ${complianceLabel}.`);
         return;
       }
       toast.success(success);
@@ -155,6 +156,7 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
       <KycDecisionHeader
         isBusy={isBusy}
         onCreateProfile={createProfile}
+        complianceLabel={complianceLabel}
         ownerLabel={ownerLabel}
         ownerType={ownerType}
         profile={profile}
@@ -186,6 +188,7 @@ export function KycAdminPanel({ documents, ownerId, ownerLabel, ownerType, profi
 }
 
 function KycDecisionHeader({
+  complianceLabel,
   isBusy,
   onCreateProfile,
   ownerLabel,
@@ -193,6 +196,7 @@ function KycDecisionHeader({
   profile,
   summary,
 }: {
+  complianceLabel: "KYB" | "KYC";
   isBusy: boolean;
   onCreateProfile: () => void;
   ownerLabel: string;
@@ -208,7 +212,9 @@ function KycDecisionHeader({
       <CardHeader className="border-b">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="grid gap-1">
-            <CardTitle>Dossier KYC {ownerKindLabel}</CardTitle>
+            <CardTitle>
+              Dossier {complianceLabel} {ownerKindLabel}
+            </CardTitle>
             <p className="text-muted-foreground text-sm">{ownerLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -228,13 +234,13 @@ function KycDecisionHeader({
           <div className="flex flex-col gap-3 rounded-md border bg-muted/20 p-4 text-sm">
             <span className="text-muted-foreground">
               {ownerType === "business"
-                ? "Aucun dossier KYC n'existe encore pour ce marchand."
+                ? "Aucun dossier KYB n'existe encore pour ce marchand."
                 : "Dossier non demarre par le client."}
             </span>
             {ownerType === "business" && (
               <Button type="button" className="w-fit" onClick={onCreateProfile} disabled={isBusy}>
                 <ShieldCheck />
-                Demarrer KYC
+                Demarrer KYB
               </Button>
             )}
           </div>
@@ -305,7 +311,8 @@ function DecisionNotice({
         <div className="grid gap-1">
           <span className="font-medium text-foreground">Documents manquants.</span>
           <span>
-            Le dossier ne peut pas etre valide tant que les documents obligatoires Tunisie ne sont pas presents et verifies.
+            Le dossier ne peut pas etre valide tant que les documents obligatoires Tunisie ne sont pas presents et
+            verifies.
           </span>
         </div>
       </div>
@@ -467,7 +474,9 @@ function RequiredDocumentsReview({
   return (
     <Card>
       <CardHeader className="border-b">
-        <CardTitle>{ownerType === "business" ? "Revue documentaire marchand" : "Revue documentaire customer"}</CardTitle>
+        <CardTitle>
+          {ownerType === "business" ? "Revue documentaire marchand" : "Revue documentaire customer"}
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
         {groups.map((group) => (
@@ -704,7 +713,10 @@ function groupDocumentsByType(documents: KycDocumentResponse[], documentTypes: r
         latest: sortedDocuments[0] ?? null,
       };
     })
-    .sort((left, right) => documentTypeOrder(left.documentType, documentTypes) - documentTypeOrder(right.documentType, documentTypes));
+    .sort(
+      (left, right) =>
+        documentTypeOrder(left.documentType, documentTypes) - documentTypeOrder(right.documentType, documentTypes),
+    );
 }
 
 function buildKycSummary(groups: DocumentGroup[], requiredDocumentTypes: readonly string[]) {

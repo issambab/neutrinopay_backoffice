@@ -152,7 +152,7 @@ export function MerchantsTable({ businesses, filters, pageSize, sort }: Merchant
                 <SortableHeader label="Statut" sortKey="status" currentSort={sort} onSort={pushSort} />
               </TableHead>
               <TableHead className="h-11 p-3">
-                <SortableHeader label="KYC" sortKey="kycStatus" currentSort={sort} onSort={pushSort} />
+                <SortableHeader label="KYB" sortKey="kycStatus" currentSort={sort} onSort={pushSort} />
               </TableHead>
               <TableHead className="h-11 p-3">Contact</TableHead>
               <TableHead className="h-11 p-3">Zone</TableHead>
@@ -218,10 +218,10 @@ export function MerchantsTable({ businesses, filters, pageSize, sort }: Merchant
                       <Button asChild variant="ghost" size="icon" className="size-8">
                         <Link
                           href={`/dashboard/merchants/${business.id}?tab=kyc`}
-                          aria-label={`Voir l'etat KYC de ${business.name}`}
+                          aria-label={`Voir l'etat KYB de ${business.name}`}
                         >
                           <ShieldCheck className="size-4" />
-                          <span className="sr-only">KYC</span>
+                          <span className="sr-only">KYB</span>
                         </Link>
                       </Button>
                       <Button asChild variant="ghost" size="sm">
@@ -365,7 +365,7 @@ function formatSortLabel(sort: string) {
       name: "Marchand",
       businessType: "Type",
       status: "Statut",
-      kycStatus: "KYC",
+      kycStatus: "KYB",
       createdAt: "Cree le",
     }[key] ?? "Cree le";
 

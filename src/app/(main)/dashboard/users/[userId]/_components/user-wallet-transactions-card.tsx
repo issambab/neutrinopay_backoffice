@@ -82,40 +82,13 @@ export function UserWalletTransactionsCard({
                 </TableHeader>
                 <TableBody>
                   {transactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>
-                        <DirectionBadge
-                          direction={transaction.direction}
-                          showStatus={showMovementStatus}
-                          status={transaction.status}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="grid gap-1">
-                          <span className="font-medium text-sm">{formatWalletEnum(transaction.operationType)}</span>
-                          <span className="text-muted-foreground text-xs">{transaction.asset}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{formatSignedAmount(transaction)}</TableCell>
-                      <TableCell>
-                        {counterpartyColumn ? (
-                          <CounterpartyCell transaction={transaction} />
-                        ) : (
-                          <span className="block max-w-[260px] truncate font-mono text-muted-foreground text-xs">
-                            {transaction.reference ?? transaction.id}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground text-xs">
-                        {formatDateTime(transaction.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <TransactionDetailSheet
-                          showCashOperationDetails={showCashOperationDetails}
-                          transaction={transaction}
-                        />
-                      </TableCell>
-                    </TableRow>
+                    <TransactionRow
+                      counterpartyColumn={counterpartyColumn}
+                      key={transaction.id}
+                      showCashOperationDetails={showCashOperationDetails}
+                      showMovementStatus={showMovementStatus}
+                      transaction={transaction}
+                    />
                   ))}
                 </TableBody>
               </Table>
@@ -128,6 +101,51 @@ export function UserWalletTransactionsCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function TransactionRow({
+  counterpartyColumn,
+  showCashOperationDetails,
+  showMovementStatus,
+  transaction,
+}: {
+  counterpartyColumn: boolean;
+  showCashOperationDetails: boolean;
+  showMovementStatus: boolean;
+  transaction: WalletTransactionResponse;
+}) {
+  const posDetails = resolvePosPaymentDetails(transaction);
+
+  return (
+    <TableRow key={transaction.id}>
+      <TableCell>
+        <DirectionBadge direction={transaction.direction} showStatus={showMovementStatus} status={transaction.status} />
+      </TableCell>
+      <TableCell>
+        <div className="grid gap-1">
+          <span className="font-medium text-sm">{posDetails?.label ?? formatWalletEnum(transaction.operationType)}</span>
+          <span className="text-muted-foreground text-xs">{posDetails?.summary ?? transaction.asset}</span>
+        </div>
+      </TableCell>
+      <TableCell className="text-right font-medium">{formatSignedAmount(transaction)}</TableCell>
+      <TableCell>
+        {counterpartyColumn ? (
+          <CounterpartyCell transaction={transaction} />
+        ) : (
+          <div className="grid max-w-[260px] gap-1">
+            <span className="truncate font-mono text-muted-foreground text-xs">{transaction.reference ?? transaction.id}</span>
+            {posDetails?.referenceHint ? (
+              <span className="truncate text-muted-foreground text-xs">{posDetails.referenceHint}</span>
+            ) : null}
+          </div>
+        )}
+      </TableCell>
+      <TableCell className="text-right text-muted-foreground text-xs">{formatDateTime(transaction.createdAt)}</TableCell>
+      <TableCell className="text-right">
+        <TransactionDetailSheet showCashOperationDetails={showCashOperationDetails} transaction={transaction} />
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -144,6 +162,7 @@ function TransactionDetailSheet({
   const [isLoadingOperation, setIsLoadingOperation] = useState(false);
   const metadataEntries = Object.entries(transaction.metadata ?? {});
   const cashOperationId = getCashOperationId(transaction.metadata);
+  const posDetails = resolvePosPaymentDetails(transaction);
 
   useEffect(() => {
     if (!showCashOperationDetails || !isOpen || !cashOperationId || operation) {
@@ -208,6 +227,20 @@ function TransactionDetailSheet({
               <DetailFact label="Date" value={formatDateTime(transaction.createdAt)} />
             </div>
           </div>
+
+          {posDetails ? (
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm">Paiement POS</h3>
+                <Badge variant="outline">{posDetails.label}</Badge>
+              </div>
+              <div className="grid gap-3 rounded-md border bg-background p-3 md:grid-cols-2">
+                {posDetails.facts.map((fact) => (
+                  <DetailFact key={fact.label} label={fact.label} mono={fact.mono} value={fact.value} />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {showCashOperationDetails ? (
             <div className="grid gap-2">
@@ -455,6 +488,20 @@ function resolveCounterparty(transaction: WalletTransactionResponse) {
     };
   }
 
+  if (source === "pos_cash_change" || transaction.operationType === "pos_cash_change") {
+    return {
+      label: isDebit ? "Client du rendu" : "Marchand",
+      name: fallbackName,
+    };
+  }
+
+  if (source === "pos_refund" || transaction.operationType === "refund") {
+    return {
+      label: isDebit ? "Client rembourse" : "Marchand emetteur",
+      name: fallbackName,
+    };
+  }
+
   if (source === "cash_operation" || transaction.operationType.startsWith("cash_")) {
     return {
       label: isDebit ? "Agent destinataire" : "Agent expediteur",
@@ -468,9 +515,142 @@ function resolveCounterparty(transaction: WalletTransactionResponse) {
   };
 }
 
+function resolvePosPaymentDetails(transaction: WalletTransactionResponse) {
+  const metadata = transaction.metadata ?? {};
+  const source = metadataString(metadata, "source");
+  const operationType = transaction.operationType;
+  const isPos =
+    source === "customer_pos_payment" ||
+    source === "pos_refund" ||
+    source === "pos_cash_change" ||
+    operationType === "payment" ||
+    operationType === "refund" ||
+    operationType === "pos_cash_change";
+
+  if (!isPos) {
+    return null;
+  }
+
+  const method = metadataString(metadata, "paymentMethod") ?? metadataString(metadata, "mode");
+  const label = formatPosPaymentLabel(transaction, method);
+  const currency = transaction.asset.split("/")[0] || "TND";
+  const orderNumber = metadataString(metadata, "orderNumber");
+  const paymentReference = metadataString(metadata, "paymentReference");
+  const terminalCode = metadataString(metadata, "terminalCode");
+  const changeReturnMethod = metadataString(metadata, "changeReturnMethod");
+  const facts = compactFacts([
+    { label: "Type", value: label },
+    { label: "Montant", value: formatSignedAmount(transaction) },
+    { label: "Commande", mono: true, value: orderNumber },
+    { label: "Reference POS", mono: true, value: paymentReference },
+    { label: "Marchand", value: metadataString(metadata, "merchantName") },
+    {
+      label: transaction.direction === "debit" ? "Client" : "Contrepartie",
+      value: metadataString(metadata, "customerName") ?? metadataString(metadata, "counterpartyName"),
+    },
+    { label: "Terminal", mono: true, value: terminalCode },
+    {
+      label: "Cash recu",
+      value: formatMetadataMinorMoney(metadata, "cashReceivedAmountMinor", currency, transaction.asset),
+    },
+    {
+      label: changeReturnMethod === "wallet" ? "Rendu wallet" : "Rendu especes",
+      value: formatMetadataMinorMoney(metadata, "changeAmountMinor", currency, transaction.asset),
+    },
+    { label: "Client rendu", value: metadataString(metadata, "changeRecipientName") },
+    {
+      label: "Reference ledger",
+      mono: true,
+      value: metadataString(metadata, "changeLedgerReference") ?? metadataString(metadata, "ledgerReference") ?? transaction.reference,
+    },
+    {
+      label: "Transaction ledger",
+      mono: true,
+      value: metadataString(metadata, "changeLedgerTransactionId") ?? metadataString(metadata, "formanceLedgerTransactionId"),
+    },
+  ]);
+
+  return {
+    facts,
+    label,
+    referenceHint: [orderNumber, terminalCode].filter(Boolean).join(" - ") || null,
+    summary: [formatPosSummary(transaction, method, changeReturnMethod), terminalCode].filter(Boolean).join(" - "),
+  };
+}
+
+function formatPosPaymentLabel(transaction: WalletTransactionResponse, method: string | null) {
+  if (transaction.operationType === "refund" || metadataString(transaction.metadata ?? {}, "source") === "pos_refund") {
+    return "Remboursement POS";
+  }
+
+  if (
+    transaction.operationType === "pos_cash_change" ||
+    metadataString(transaction.metadata ?? {}, "source") === "pos_cash_change"
+  ) {
+    return "Cash + rendu wallet";
+  }
+
+  const labels: Record<string, string> = {
+    card: "Carte bancaire",
+    cash: "Cash",
+    nfc: "NFC",
+    qr: "QR marchand",
+    wallet: "Wallet",
+  };
+
+  return labels[method ?? ""] ?? (transaction.operationType === "payment" ? "Paiement POS" : formatWalletEnum(transaction.operationType));
+}
+
+function formatPosSummary(transaction: WalletTransactionResponse, method: string | null, changeReturnMethod: string | null) {
+  if (transaction.operationType === "pos_cash_change") {
+    return "Rendu monnaie vers wallet client";
+  }
+  if (transaction.operationType === "refund") {
+    return "Mouvement inverse Formance";
+  }
+  if (method === "cash" && changeReturnMethod) {
+    return changeReturnMethod === "wallet" ? "Cash avec rendu wallet" : "Cash avec rendu especes";
+  }
+  return transaction.asset;
+}
+
+function compactFacts(
+  facts: Array<{
+    label: string;
+    mono?: boolean;
+    value?: string | null;
+  }>,
+) {
+  return facts
+    .filter((fact) => fact.value != null && fact.value !== "")
+    .map((fact) => ({ label: fact.label, mono: fact.mono, value: fact.value ?? "-" }));
+}
+
+function formatMetadataMinorMoney(
+  metadata: Record<string, unknown>,
+  key: string,
+  currency: string,
+  asset: string,
+) {
+  const value = metadataNumber(metadata, key);
+  return value == null ? null : formatAssetMinorMoney(value, currency, asset);
+}
+
 function metadataString(metadata: Record<string, unknown>, key: string) {
   const value = metadata[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function metadataNumber(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 function shortId(value: string) {

@@ -88,6 +88,25 @@ export function formatPaymentStatus(status?: string | null) {
   return labels[status ?? ""] ?? String(status ?? "-");
 }
 
+export function formatOrderPaymentMethod(metadata?: Record<string, unknown> | null) {
+  const method = metadataText(metadata, "paymentMethod") ?? metadataText(metadata, "mode");
+  const changeAmountMinor = metadataNumber(metadata, "changeAmountMinor") ?? 0;
+  const changeReturnMethod = metadataText(metadata, "changeReturnMethod");
+  if (method === "cash" && changeAmountMinor > 0) {
+    return changeReturnMethod === "wallet" ? "Cash + rendu wallet" : "Cash + rendu especes";
+  }
+
+  const labels: Record<string, string> = {
+    card: "Carte bancaire",
+    cash: "Cash",
+    nfc: "NFC",
+    qr: "QR",
+    wallet: "Wallet",
+  };
+
+  return labels[method ?? ""] ?? method ?? "-";
+}
+
 export function formatPaymentIntentStatus(status?: string | null) {
   const labels: Record<string, string> = {
     cancelled: "Annule",
@@ -165,4 +184,21 @@ export function formatBytes(value: number) {
   }
 
   return `${Math.round(value / 1024 / 102.4) / 10} Mo`;
+}
+
+function metadataText(metadata: Record<string, unknown> | null | undefined, key: string) {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function metadataNumber(metadata: Record<string, unknown> | null | undefined, key: string) {
+  const value = metadata?.[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }

@@ -213,6 +213,10 @@ export type CommerceSalesSummaryResponse = {
   paidRevenue: number | string;
   refundedAmount: number | string;
   averagePaidBasket: number | string;
+  netRevenue: number | string;
+  cashChangeAmount: number | string;
+  walletChangeAmount: number | string;
+  walletChangeCount: number;
 };
 
 export type UpdateCommerceOrderStatusRequest = {

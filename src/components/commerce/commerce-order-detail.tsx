@@ -38,6 +38,7 @@ import type {
 import {
   formatMoney,
   formatOrderStatus,
+  formatOrderPaymentMethod,
   formatPaymentIntentStatus,
   formatPaymentStatus,
   orderStatusClassName,
@@ -79,6 +80,7 @@ export function CommerceOrderDetail({
   const orderTransitions = readonly ? [] : allowedOrderTransitions(order.status);
   const paymentTransitions = readonly || !onPaymentStatusChange ? [] : allowedPaymentTransitions(order.paymentStatus);
   const canManagePaymentIntents = allowPaymentIntentManagement && paymentIntentScope === "admin";
+  const posPaymentFacts = resolvePosPaymentFacts(order);
 
   useEffect(() => {
     if (!paymentIntentScope) {
@@ -234,10 +236,19 @@ export function CommerceOrderDetail({
             <Info icon={Phone} label="Telephone" value={order.customerPhone} />
             <Info icon={Mail} label="Email" value={order.customerEmail ?? "-"} />
             <Info icon={CreditCard} label="Paiement" value={formatPaymentStatus(order.paymentStatus)} />
+            <Info icon={CreditCard} label="Mode paiement" value={formatOrderPaymentMethod(order.metadata)} />
             <Info icon={MapPin} label="Adresse" value={order.customerAddressLine1 ?? "-"} />
             <Info icon={MapPin} label="Ville" value={order.customerCity ?? "-"} />
             <Info icon={ReceiptText} label="Note" value={order.notes ?? "-"} />
           </div>
+
+          {posPaymentFacts.length ? (
+            <div className="mt-4 grid gap-3 rounded-md border bg-muted/10 p-3 md:grid-cols-2 xl:grid-cols-3">
+              {posPaymentFacts.map((fact) => (
+                <Info icon={CreditCard} key={fact.label} label={fact.label} value={fact.value} />
+              ))}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -548,6 +559,36 @@ function Info({ icon: Icon, label, value }: { icon: typeof User; label: string; 
   );
 }
 
+function resolvePosPaymentFacts(order: CommerceOrderResponse) {
+  const metadata = order.metadata ?? {};
+  const source = metadataText(metadata, "source");
+  if (source !== "pos" && source !== "pos_refund") {
+    return [];
+  }
+
+  const currency = order.currency || "TND";
+  const facts = [
+    { label: "Type paiement", value: formatOrderPaymentMethod(metadata) },
+    { label: "Terminal", value: metadataText(metadata, "terminalCode") },
+    { label: "Reference POS", value: metadataText(metadata, "paymentReference") },
+    { label: "Cash recu", value: formatMinorMoney(metadataNumber(metadata, "cashReceivedAmountMinor"), currency) },
+    {
+      label: metadataText(metadata, "changeReturnMethod") === "wallet" ? "Rendu wallet" : "Rendu especes",
+      value: formatMinorMoney(metadataNumber(metadata, "changeAmountMinor"), currency),
+    },
+    { label: "Client rendu", value: metadataText(metadata, "changeRecipientName") },
+    { label: "Reference ledger", value: metadataText(metadata, "changeLedgerReference") ?? metadataText(metadata, "ledgerReference") },
+    {
+      label: "Transaction ledger",
+      value: metadataText(metadata, "changeLedgerTransactionId") ?? metadataText(metadata, "ledgerTransactionId"),
+    },
+    { label: "Reference refund", value: metadataText(metadata, "refundLedgerReference") },
+    { label: "Transaction refund", value: metadataText(metadata, "refundLedgerTransactionId") },
+  ];
+
+  return facts.filter((fact): fact is { label: string; value: string } => Boolean(fact.value));
+}
+
 function OrderActions<T extends CommerceOrderStatus | CommercePaymentStatus>({
   isBusy,
   label,
@@ -701,6 +742,31 @@ function textValue(formData: FormData, key: string) {
 
 function EmptyPanel({ text }: { text: string }) {
   return <div className="rounded-md border border-dashed p-6 text-center text-muted-foreground text-sm">{text}</div>;
+}
+
+function metadataText(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function metadataNumber(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function formatMinorMoney(amountMinor: number | null, currency: string) {
+  if (amountMinor == null || amountMinor <= 0) {
+    return null;
+  }
+
+  return formatMoney(amountMinor / 100, currency);
 }
 
 function formatDate(value?: string | null) {

@@ -58,6 +58,7 @@ import {
   commerceStatusClassName,
   formatCommerceStatus,
   formatMoney,
+  formatOrderPaymentMethod,
   formatOrderStatus,
   formatPaymentStatus,
   orderStatusClassName,
@@ -1084,6 +1085,7 @@ export function StoresAdminPanel({
                           <Badge className={paymentStatusClassName(order.paymentStatus)} variant="outline">
                             {formatPaymentStatus(order.paymentStatus)}
                           </Badge>
+                          <Badge variant="secondary">{formatOrderPaymentMethod(order.metadata)}</Badge>
                         </div>
                         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
                           <span className="flex min-w-0 items-center gap-1 truncate text-muted-foreground">
@@ -1318,6 +1320,9 @@ export function StoresAdminPanel({
                             <Badge className={paymentStatusClassName(order.paymentStatus)} variant="outline">
                               {formatPaymentStatus(order.paymentStatus)}
                             </Badge>
+                            <div className="mt-1 text-muted-foreground text-xs">
+                              {formatOrderPaymentMethod(order.metadata)}
+                            </div>
                           </TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
                           <TableCell className="text-right font-medium">
