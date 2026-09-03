@@ -22,7 +22,6 @@ const NAV_ITEMS = [
   { href: "/user/profile", icon: UserRound, label: "Profil" },
   { href: "/user/kyc", icon: ShieldCheck, label: "KYC" },
   { href: "/user/transactions", icon: ReceiptText, label: "Transactions" },
-  { href: "/user/transactions", icon: ReceiptText, label: "Transactions" },
 ];
 
 export function UserNav({ balance, userLabel }: UserNavProps) {
