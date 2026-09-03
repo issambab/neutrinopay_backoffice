@@ -74,7 +74,7 @@ export const sidebarItems: NavGroup[] = [
         icon: ShieldCheck,
       },
       {
-        title: "Compliance",
+        title: "Compliance & risk",
         url: "/dashboard/compliance",
         icon: FileWarning,
       },
@@ -83,9 +83,13 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/merchants",
         icon: Store,
         subItems: [
-          { title: "Liste", url: "/dashboard/merchants" },
+          { title: "Liste merchants", url: "/dashboard/merchants" },
           { title: "Arborescence", url: "/dashboard/merchants/tree" },
-          { title: "Terminaux POS", url: "/dashboard/terminals", icon: MonitorSmartphone },
+          {
+            title: "Terminaux POS",
+            url: "/dashboard/terminals",
+            icon: MonitorSmartphone,
+          },
         ],
       },
       {
