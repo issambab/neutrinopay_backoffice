@@ -68,6 +68,11 @@ export async function createAgency(payload: CreateAgencyRequest) {
   return readApiResponse<AgencyResponse>(response, "Unable to create agency.");
 }
 
+export async function getAgency(agencyId: string) {
+  const response = await authenticatedBackendFetch(`/agencies/${agencyId}`);
+  return readApiResponse<AgencyResponse>(response, "Unable to load agency.");
+}
+
 export async function updateAgency(agencyId: string, payload: UpdateAgencyRequest) {
   const response = await authenticatedBackendFetch(`/agencies/${agencyId}`, jsonRequest("PATCH", payload));
   return readApiResponse<AgencyResponse>(response, "Unable to update agency.");

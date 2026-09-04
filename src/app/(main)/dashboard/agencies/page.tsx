@@ -5,38 +5,40 @@ import { Building2, Landmark, ShieldCheck, UserRoundCheck, WalletCards } from "l
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAgencies, listAgencyAgents } from "@/lib/cash/cash.server";
 import type { CashAgentContractResponse } from "@/lib/cash/cash.types";
-import { listUsers } from "@/lib/iam/users.server";
 
 import { AgenciesAdminPanel } from "./_components/agencies-admin-panel";
 
 type AgenciesPageProps = {
   searchParams?: Promise<{
+    page?: string;
     q?: string;
+    size?: string;
+    sort?: string;
     status?: string;
   }>;
 };
 
+const PAGE_SIZE = 20;
+
 export default async function AgenciesPage({ searchParams }: AgenciesPageProps) {
   const params = await searchParams;
+  const page = toPageNumber(params?.page);
+  const pageSize = toPageSize(params?.size);
+  const sort = toAgencySort(params?.sort);
   const filters = {
     q: params?.q ?? "",
     status: params?.status ?? "",
   };
 
   try {
-    const [agencies, cashAgents] = await Promise.all([
-      listAgencies({
-        size: 100,
-        sort: "createdAt,desc",
-        status: filters.status || undefined,
-      }),
-      listUsers({
-        page: 0,
-        size: 100,
-        sort: "createdAt,desc",
-        type: "cash_agent",
-      }),
-    ]);
+    const agencies = await listAgencies({
+      page,
+      q: filters.q || undefined,
+      size: pageSize,
+      sort,
+      status: filters.status || undefined,
+    });
+
     const contractsEntries = await Promise.all(
       agencies.content.map(async (agency) => {
         const contracts = await listAgencyAgents(agency.id, { size: 50, sort: "createdAt,desc" }).catch(
@@ -50,11 +52,9 @@ export default async function AgenciesPage({ searchParams }: AgenciesPageProps) 
       }),
     );
     const contractsByAgencyId = Object.fromEntries(contractsEntries);
-    const filteredAgencies = filterAgencies(agencies.content, filters.q);
-    const activeAgencies = agencies.content.filter((agency) => agency.status === "active").length;
-    const activeContracts = Object.values(contractsByAgencyId)
-      .flat()
-      .filter((contract) => contract.status === "active").length;
+    const pageActiveAgencies = agencies.content.filter((agency) => agency.status === "active").length;
+    const pageContracts = Object.values(contractsByAgencyId).flat();
+    const pageActiveContracts = pageContracts.filter((contract) => contract.status === "active").length;
 
     return (
       <div className="flex flex-col gap-4 md:gap-6">
@@ -64,38 +64,37 @@ export default async function AgenciesPage({ searchParams }: AgenciesPageProps) 
               <p className="font-medium text-muted-foreground text-sm">Cash network control</p>
               <h1 className="mt-1 font-semibold text-2xl tracking-tight md:text-3xl">Agences cash</h1>
               <p className="mt-2 max-w-3xl text-muted-foreground text-sm">
-                Pilotez les agences, les agents autorises, les plafonds et les commissions appliquees aux operations
-                Cash-in/Cash-out.
+                La liste sert au suivi. La creation et la gestion des agents se font dans un workflow dedie par agence.
               </p>
             </div>
             <div className="rounded-lg border bg-background p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-muted-foreground text-sm">Contrats actifs</p>
-                  <p className="mt-1 font-semibold text-3xl tracking-tight">{activeContracts}</p>
+                  <p className="text-muted-foreground text-sm">Contrats actifs page</p>
+                  <p className="mt-1 font-semibold text-3xl tracking-tight">{pageActiveContracts}</p>
                 </div>
                 <WalletCards className="size-6 text-muted-foreground" />
               </div>
               <p className="mt-3 border-t pt-3 text-muted-foreground text-xs">
-                Les changements de commission affectent les nouvelles operations. Les operations deja preparees gardent
-                leur breakdown fige.
+                Ouvrez une agence pour modifier ses informations, affecter les agents et ajuster les commissions.
               </p>
             </div>
           </div>
 
           <div className="grid gap-3 p-4 md:grid-cols-4">
             <MetricCard icon={Building2} label="Agences" value={agencies.totalElements.toString()} />
-            <MetricCard icon={Landmark} label="Actives" value={activeAgencies.toString()} />
-            <MetricCard icon={UserRoundCheck} label="Agents cash" value={cashAgents.totalElements.toString()} />
-            <MetricCard icon={ShieldCheck} label="Contrats actifs" value={activeContracts.toString()} />
+            <MetricCard icon={Landmark} label="Actives page" value={pageActiveAgencies.toString()} />
+            <MetricCard icon={UserRoundCheck} label="Agents page" value={pageContracts.length.toString()} />
+            <MetricCard icon={ShieldCheck} label="Contrats actifs" value={pageActiveContracts.toString()} />
           </div>
         </section>
 
         <AgenciesAdminPanel
-          agents={cashAgents.content}
-          agencies={filteredAgencies}
+          agencies={agencies}
           contractsByAgencyId={contractsByAgencyId}
           filters={filters}
+          pageSize={pageSize}
+          sort={sort}
         />
       </div>
     );
@@ -141,18 +140,27 @@ function MetricCard({
   );
 }
 
-function filterAgencies(agencies: Awaited<ReturnType<typeof listAgencies>>["content"], query: string) {
-  const normalizedQuery = query.trim().toLowerCase();
+function toPageNumber(value?: string) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+}
 
-  if (!normalizedQuery) {
-    return agencies;
-  }
+function toPageSize(value?: string) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : PAGE_SIZE;
+}
 
-  return agencies.filter(
-    (agency) =>
-      agency.name.toLowerCase().includes(normalizedQuery) ||
-      agency.agencyCode.toLowerCase().includes(normalizedQuery) ||
-      agency.city?.toLowerCase().includes(normalizedQuery) ||
-      agency.zone?.toLowerCase().includes(normalizedQuery),
-  );
+function toAgencySort(value?: string) {
+  const allowedSorts = new Set([
+    "agencyCode,asc",
+    "agencyCode,desc",
+    "createdAt,asc",
+    "createdAt,desc",
+    "name,asc",
+    "name,desc",
+    "status,asc",
+    "status,desc",
+  ]);
+
+  return value && allowedSorts.has(value) ? value : "createdAt,desc";
 }
