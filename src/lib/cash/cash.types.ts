@@ -1,4 +1,4 @@
-export type PageResponse<T> = {
+﻿export type PageResponse<T> = {
   content: T[];
   page: number;
   size: number;
@@ -332,4 +332,59 @@ export type AgentSettlementListParams = {
   size?: number;
   sort?: string;
   status?: AgentSettlementStatus | string;
+};
+export type AgentPayoutStatus = "pending" | "posted" | "rejected" | "failed";
+
+export type AgentPayoutResponse = {
+  id: string;
+  tenantId: string;
+  agencyId: string;
+  agencyCode: string;
+  agentContractId: string;
+  agentUserId: string;
+  agentName?: string | null;
+  amountMinor: number;
+  currency: string;
+  sourceAccount: string;
+  destinationAccount: string;
+  status: AgentPayoutStatus;
+  proofReference?: string | null;
+  reason?: string | null;
+  rejectionReason?: string | null;
+  idempotencyKey?: string | null;
+  ledgerTransactionId?: string | null;
+  paidAt?: string | null;
+  failedAt?: string | null;
+  rejectedAt?: string | null;
+  failureReason?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt?: string | null;
+};
+
+export type CreateAgentPayoutRequest = {
+  agentContractId: string;
+  amountMinor: number;
+  currency: "TND";
+  proofReference?: string | null;
+  reason?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type ApproveAgentPayoutRequest = {
+  idempotencyKey: string;
+};
+
+export type RejectAgentPayoutRequest = {
+  reason: string;
+};
+
+export type AgentPayoutListParams = {
+  agencyId?: string;
+  agentUserId?: string;
+  page?: number;
+  q?: string;
+  size?: number;
+  sort?: string;
+  status?: AgentPayoutStatus | string;
 };

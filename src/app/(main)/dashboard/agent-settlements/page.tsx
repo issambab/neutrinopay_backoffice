@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+﻿import type { ComponentType } from "react";
 
 import { AlertTriangle, Banknote, CheckCircle2, Clock3, XCircle } from "lucide-react";
 
@@ -80,7 +80,7 @@ export default async function AgentSettlementsPage({ searchParams }: AgentSettle
       <div className="flex flex-col gap-4 md:gap-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="font-semibold text-2xl tracking-tight">Settlements agents</h1>
+            <h1 className="font-semibold text-2xl tracking-tight">Settlements caisse/float</h1>
             <p className="text-muted-foreground text-sm">
               Decision finance pour les mouvements Cash to Float et Float to Cash des agents.
             </p>
@@ -112,8 +112,8 @@ export default async function AgentSettlementsPage({ searchParams }: AgentSettle
     return (
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="font-semibold text-2xl tracking-tight">Settlements agents</h1>
-          <p className="text-muted-foreground text-sm">Impossible de charger les settlements agents.</p>
+          <h1 className="font-semibold text-2xl tracking-tight">Settlements caisse/float</h1>
+          <p className="text-muted-foreground text-sm">Impossible de charger les mouvements caisse/float.</p>
         </div>
         <Card>
           <CardHeader>

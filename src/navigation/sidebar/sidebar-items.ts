@@ -1,4 +1,4 @@
-import {
+﻿import {
   Banknote,
   Bell,
   Building2,
@@ -102,7 +102,7 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/agencies",
         icon: Landmark,
         subItems: [
-          { title: "Agences", url: "/dashboard/agencies" },
+          { title: "Liste Agences", url: "/dashboard/agencies" },
           { title: "Agents cash", url: "/dashboard/agents" },
         ],
       },
@@ -112,7 +112,8 @@ export const sidebarItems: NavGroup[] = [
         icon: ReceiptText,
         subItems: [
           { title: "Cash-in / Cash-out", url: "/dashboard/cash-operations" },
-          { title: "Settlements agents", url: "/dashboard/agent-settlements" },
+          { title: "Settlements caisse/float", url: "/dashboard/agent-settlements" },
+          { title: "Payouts agents", url: "/dashboard/agent-payouts" },
           {
             title: "Alimentations float",
             url: "/dashboard/agent-float-topups",
@@ -126,7 +127,7 @@ export const sidebarItems: NavGroup[] = [
         subItems: [
           { title: "Liens de paiement", url: "/dashboard/coming-soon" },
           { title: "Transactions", url: "/dashboard/coming-soon" },
-          { title: "Opérations automatisées", url: "/dashboard/coming-soon" },
+          { title: "OpÃ©rations automatisÃ©es", url: "/dashboard/coming-soon" },
         ],
       },
 
@@ -152,7 +153,7 @@ export const sidebarItems: NavGroup[] = [
         icon: Building2,
       },
       {
-        title: "Paramètres",
+        title: "ParamÃ¨tres",
         url: "/dashboard/coming-soon",
         icon: Settings,
         subItems: [
@@ -177,7 +178,7 @@ export const sidebarItems: NavGroup[] = [
         icon: MessageSquare,
       },
       {
-        title: "Opérations automatisées",
+        title: "OpÃ©rations automatisÃ©es",
         url: "/dashboard/coming-soon",
         icon: Calendar,
       },

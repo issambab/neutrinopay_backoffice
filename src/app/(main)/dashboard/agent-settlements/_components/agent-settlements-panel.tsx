@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 
@@ -142,7 +142,7 @@ export function AgentSettlementsPanel({
         <CardHeader className="gap-3 border-b">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle>File settlement</CardTitle>
+              <CardTitle>File caisse / float</CardTitle>
               <p className="mt-1 text-muted-foreground text-sm">Controle finance avant posting ledger.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -314,7 +314,7 @@ function SettlementTable({
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                Aucun settlement ne correspond aux filtres.
+                Aucun mouvement caisse/float ne correspond aux filtres.
               </TableCell>
             </TableRow>
           )}
@@ -401,7 +401,7 @@ function SettlementTransactionDetailSheet({
 
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm">Metadata settlement / ledger</h3>
+              <h3 className="font-medium text-sm">Metadata caisse / float / ledger</h3>
               <Badge variant="outline" className="text-muted-foreground">
                 {metadataEntries.length} champs
               </Badge>
@@ -431,7 +431,7 @@ function SettlementTransactionDetailSheet({
           </div>
 
           <div className="grid gap-2">
-            <h3 className="font-medium text-sm">Payload settlement</h3>
+            <h3 className="font-medium text-sm">Payload caisse / float</h3>
             <pre className="max-h-72 overflow-auto rounded-md border bg-muted/20 p-3 text-xs">
               {JSON.stringify(settlement, null, 2)}
             </pre>
@@ -508,7 +508,7 @@ function CreateSettlementCard({
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-2">
           <Plus className="size-5" />
-          Nouveau settlement
+          Nouveau mouvement caisse/float
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -551,7 +551,7 @@ function CreateSettlementCard({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="reason">Motif</Label>
-            <Textarea id="reason" name="reason" rows={3} placeholder="Settlement valide par finance" />
+            <Textarea id="reason" name="reason" rows={3} placeholder="Mouvement caisse/float valide par finance" />
           </div>
           {error ? (
             <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive text-sm">
@@ -583,7 +583,7 @@ function SettlementDetailCard({
         <CardHeader className="border-b">
           <CardTitle>Detail</CardTitle>
         </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">Aucun settlement selectionne.</CardContent>
+        <CardContent className="text-muted-foreground text-sm">Aucun mouvement caisse/float selectionne.</CardContent>
       </Card>
     );
   }

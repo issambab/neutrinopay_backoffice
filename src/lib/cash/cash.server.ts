@@ -7,10 +7,13 @@ import type {
   AgentFloatTopupListParams,
   AgentFloatTopupResponse,
   AgentLedgerBalanceResponse,
+  AgentPayoutListParams,
+  AgentPayoutResponse,
   AgentPhysicalCashBalanceResponse,
   AgentSettlementListParams,
   AgentSettlementResponse,
   ApproveAgentFloatTopupRequest,
+  ApproveAgentPayoutRequest,
   ApproveAgentSettlementRequest,
   CashAgentContractResponse,
   CashCustomerLookupResponse,
@@ -19,11 +22,13 @@ import type {
   ConfirmCashOperationRequest,
   CreateAgencyRequest,
   CreateAgentFloatTopupRequest,
+  CreateAgentPayoutRequest,
   CreateAgentSettlementRequest,
   CreateCashAgentContractRequest,
   ExecuteCashOperationRequest,
   PageResponse,
   RejectAgentFloatTopupRequest,
+  RejectAgentPayoutRequest,
   RejectAgentSettlementRequest,
   StartCashOperationRequest,
   UpdateAgencyRequest,
@@ -43,14 +48,16 @@ type ApiErrorResponse = {
 
 type ListParams = {
   page?: number;
+  q?: string;
   size?: number;
   sort?: string;
   status?: string;
 };
 
-export async function listAgencies({ page = 0, size = 20, sort = "createdAt,desc", status }: ListParams = {}) {
+export async function listAgencies({ page = 0, q, size = 20, sort = "createdAt,desc", status }: ListParams = {}) {
   const searchParams = paginationParams({ page, size, sort });
   appendIfPresent(searchParams, "status", status);
+  appendIfPresent(searchParams, "q", q);
 
   const response = await authenticatedBackendFetch(`/agencies?${searchParams.toString()}`);
   return readApiResponse<PageResponse<AgencyResponse>>(response, "Unable to load agencies.");
@@ -188,6 +195,13 @@ export async function listCurrentAgentSettlements(params: AgentSettlementListPar
   return readApiResponse<PageResponse<AgentSettlementResponse>>(response, "Unable to load current agent settlements.");
 }
 
+export async function listCurrentAgentPayouts(params: AgentPayoutListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "q", params.q);
+  const response = await authenticatedBackendFetch(`/agent/payouts?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<AgentPayoutResponse>>(response, "Unable to load current agent payouts.");
+}
 export async function getCashOperation(operationId: string) {
   const response = await authenticatedBackendFetch(`/cash-operations/${operationId}`);
   return readApiResponse<CashOperationResponse>(response, "Unable to load cash operation.");
@@ -278,6 +292,42 @@ export async function rejectAgentSettlement(settlementId: string, payload: Rejec
   return readApiResponse<AgentSettlementResponse>(response, "Unable to reject agent settlement.");
 }
 
+export async function createAgentPayout(payload: CreateAgentPayoutRequest) {
+  const response = await authenticatedBackendFetch("/agent-payouts", jsonRequest("POST", payload));
+  return readApiResponse<AgentPayoutResponse>(response, "Unable to create agent payout.");
+}
+
+export async function listAgentPayouts(params: AgentPayoutListParams = {}) {
+  const searchParams = paginationParams(params);
+  appendIfPresent(searchParams, "status", params.status);
+  appendIfPresent(searchParams, "agencyId", params.agencyId);
+  appendIfPresent(searchParams, "agentUserId", params.agentUserId);
+  appendIfPresent(searchParams, "q", params.q);
+
+  const response = await authenticatedBackendFetch(`/agent-payouts?${searchParams.toString()}`);
+  return readApiResponse<PageResponse<AgentPayoutResponse>>(response, "Unable to load agent payouts.");
+}
+
+export async function getAgentPayout(payoutId: string) {
+  const response = await authenticatedBackendFetch(`/agent-payouts/${payoutId}`);
+  return readApiResponse<AgentPayoutResponse>(response, "Unable to load agent payout.");
+}
+
+export async function getAgentPayoutEarningsBalance(agentContractId: string) {
+  const searchParams = new URLSearchParams({ agentContractId });
+  const response = await authenticatedBackendFetch(`/agent-payouts/earnings-balance?${searchParams.toString()}`);
+  return readApiResponse<AgentLedgerBalanceResponse>(response, "Unable to load agent payout earnings balance.");
+}
+
+export async function approveAgentPayout(payoutId: string, payload: ApproveAgentPayoutRequest) {
+  const response = await authenticatedBackendFetch(`/agent-payouts/${payoutId}/approve`, jsonRequest("POST", payload));
+  return readApiResponse<AgentPayoutResponse>(response, "Unable to approve agent payout.");
+}
+
+export async function rejectAgentPayout(payoutId: string, payload: RejectAgentPayoutRequest) {
+  const response = await authenticatedBackendFetch(`/agent-payouts/${payoutId}/reject`, jsonRequest("POST", payload));
+  return readApiResponse<AgentPayoutResponse>(response, "Unable to reject agent payout.");
+}
 function paginationParams({ page = 0, size = 20, sort = "createdAt,desc" }: ListParams) {
   return new URLSearchParams({
     page: String(page),

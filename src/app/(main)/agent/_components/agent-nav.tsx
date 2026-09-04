@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Banknote, Landmark, LayoutDashboard, ReceiptText, ShieldCheck, WalletCards } from "lucide-react";
 
@@ -14,7 +14,8 @@ const NAV_ITEMS = [
   { href: "/agent/cash-out", icon: ShieldCheck, label: "Cash-out" },
   { href: "/agent/operations", icon: ReceiptText, label: "Operations" },
   { href: "/agent/float-topups", icon: WalletCards, label: "Alimentations float" },
-  { href: "/agent/settlements", icon: Banknote, label: "Settlements" },
+  { href: "/agent/settlements", icon: Banknote, label: "Caisse / float" },
+  { href: "/agent/payouts", icon: Banknote, label: "Payouts" },
 ];
 
 export function AgentNav({ userLabel }: AgentNavProps) {
